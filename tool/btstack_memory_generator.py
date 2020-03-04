@@ -107,8 +107,10 @@ hfile_header_end = """
 """
 
 cfile_header_begin = """
+#define BTSTACK_FILE__ "btstack_memory.c"
+
 /*
- *  btstack_memory.h
+ *  btstack_memory.c
  *
  *  @brief BTstack memory management via configurable memory pools
  *
@@ -210,7 +212,7 @@ list_of_le_structs = [
     ["gatt_client", "whitelist_entry", "sm_lookup_entry"],
 ]
 list_of_mesh_structs = [
-    ['mesh_network_pdu', 'mesh_transport_pdu', 'mesh_network_key', 'mesh_transport_key', 'mesh_virtual_address', 'mesh_subnet']
+    ['mesh_network_pdu', 'mesh_transport_pdu', 'mesh_message_pdu', 'mesh_network_key', 'mesh_transport_key', 'mesh_virtual_address', 'mesh_subnet']
 ]
 
 btstack_root = os.path.abspath(os.path.dirname(sys.argv[0]) + '/..')
