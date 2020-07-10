@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -48,12 +48,14 @@
 #include <inttypes.h>
 
 #include "btstack_config.h"
+#include "btstack_state.h"
 
 #include "btstack_debug.h"
 #include "hci.h"
 #include "hci_transport.h"
 #include "bluetooth_company_id.h"
 #include "btstack_uart_block.h"
+#include "log.h"
 
 #define ENABLE_LOG_EHCILL
 
@@ -103,8 +105,6 @@ static btstack_timer_source_t ehcill_sleep_ack_timer;
 #error HCI_OUTGOING_PRE_BUFFER_SIZE not defined. Please update hci.h
 #endif
 
-static void dummy_handler(uint8_t packet_type, uint8_t *packet, uint16_t size); 
-
 typedef enum {
     H4_OFF,
     H4_W4_PACKET_TYPE,
@@ -119,33 +119,35 @@ typedef enum {
     TX_IDLE,
     TX_W4_PACKET_SENT,
 #ifdef ENABLE_EHCILL
-    TX_W4_WAKEUP, 
+    TX_W4_WAKEUP,
     TX_W2_EHCILL_SEND,
     TX_W4_EHCILL_SENT,
 #endif
 } TX_STATE;
 
-// UART Driver + Config
-static const btstack_uart_block_t * btstack_uart;
-static btstack_uart_config_t uart_config;
+struct btstack_hci_h4_state {
+    // UART Driver + Config
+    const btstack_uart_block_t * btstack_uart;
+    btstack_uart_config_t uart_config;
 
-// write state
-static TX_STATE tx_state;         
+    // write state
+    TX_STATE tx_state;
 #ifdef ENABLE_EHCILL
-static uint8_t * ehcill_tx_data;
-static uint16_t  ehcill_tx_len;   // 0 == no outgoing packet
+    uint8_t * ehcill_tx_data;
+    uint16_t  ehcill_tx_len;   // 0 == no outgoing packet
 #endif
 
-static  void (*packet_handler)(uint8_t packet_type, uint8_t *packet, uint16_t size) = dummy_handler;
+    void (*packet_handler)(btstack_state_t *btstack, uint8_t packet_type, uint8_t *packet, uint16_t size);
 
-// packet reader state machine
-static  H4_STATE h4_state;
-static uint16_t bytes_to_read;
-static uint16_t read_pos;
+    // packet reader state machine
+    H4_STATE h4_state;
+    uint16_t bytes_to_read;
+    uint16_t read_pos;
 
-// incoming packet buffer
-static uint8_t hci_packet_with_pre_buffer[HCI_INCOMING_PRE_BUFFER_SIZE + HCI_INCOMING_PACKET_BUFFER_SIZE + 1]; // packet type + max(acl header + acl payload, event header + event data)
-static uint8_t * hci_packet = &hci_packet_with_pre_buffer[HCI_INCOMING_PRE_BUFFER_SIZE];
+    // incoming packet buffer
+    uint8_t hci_packet_with_pre_buffer[HCI_INCOMING_PRE_BUFFER_SIZE + HCI_INCOMING_PACKET_BUFFER_SIZE + 1]; // packet type + max(acl header + acl payload, event header + event data)
+    uint8_t * hci_packet;
+};
 
 // Baudrate change bugs in TI CC256x and CYW20704
 #ifdef ENABLE_CC256X_BAUDRATE_CHANGE_FLOWCONTROL_BUG_WORKAROUND
@@ -171,23 +173,24 @@ static enum {
 } baudrate_change_workaround_state;
 #endif
 
-static int hci_transport_h4_set_baudrate(uint32_t baudrate){
+static int hci_transport_h4_set_baudrate(btstack_state_t *btstack, uint32_t baudrate){
     log_info("hci_transport_h4_set_baudrate %"PRIu32, baudrate);
-    return btstack_uart->set_baudrate(baudrate);
+    return btstack->hci_h4->btstack_uart->set_baudrate(btstack, baudrate);
 }
 
-static void hci_transport_h4_reset_statemachine(void){
-    h4_state = H4_W4_PACKET_TYPE;
-    read_pos = 0;
-    bytes_to_read = 1;
+static void hci_transport_h4_reset_statemachine(btstack_state_t *btstack){
+    btstack->hci_h4->h4_state = H4_W4_PACKET_TYPE;
+    btstack->hci_h4->read_pos = 0;
+    btstack->hci_h4->bytes_to_read = 1;
 }
 
-static void hci_transport_h4_trigger_next_read(void){
-    // log_info("hci_transport_h4_trigger_next_read: %u bytes", bytes_to_read);
-    btstack_uart->receive_block(&hci_packet[read_pos], bytes_to_read);  
+static void hci_transport_h4_trigger_next_read(btstack_state_t *btstack){
+    log_info("hci_transport_h4_trigger_next_read: %u bytes", btstack->hci_h4->bytes_to_read);
+    LH(__func__, __LINE__, btstack->hci_h4->bytes_to_read);
+    btstack->hci_h4->btstack_uart->receive_block(btstack, &btstack->hci_h4->hci_packet[btstack->hci_h4->read_pos], btstack->hci_h4->bytes_to_read);
 }
 
-static void hci_transport_h4_packet_complete(void){
+static void hci_transport_h4_packet_complete(btstack_state_t *btstack){
 #ifdef ENABLE_BAUDRATE_CHANGE_FLOWCONTROL_BUG_WORKAROUND
     if (baudrate_change_workaround_state == BAUDRATE_CHANGE_WORKAROUND_IDLE
             && memcmp(hci_packet, local_version_event_prefix, sizeof(local_version_event_prefix)) == 0){
@@ -215,31 +218,31 @@ static void hci_transport_h4_packet_complete(void){
 #endif
             }
 #endif
-    uint16_t packet_len = read_pos-1;
+    uint16_t packet_len = btstack->hci_h4->read_pos-1;
 
     // reset state machine before delivering packet to stack as it might close the transport
-    hci_transport_h4_reset_statemachine();
-    packet_handler(hci_packet[0], &hci_packet[1], packet_len);
+    hci_transport_h4_reset_statemachine(btstack);
+    btstack->hci_h4->packet_handler(btstack, btstack->hci_h4->hci_packet[0], &btstack->hci_h4->hci_packet[1], packet_len);
 }
 
-static void hci_transport_h4_block_read(void){
+static void hci_transport_h4_block_read(btstack_state_t *btstack){
 
-    read_pos += bytes_to_read;
+    btstack->hci_h4->read_pos += btstack->hci_h4->bytes_to_read;
 
-    switch (h4_state) {
+    switch (btstack->hci_h4->h4_state) {
         case H4_W4_PACKET_TYPE:
-            switch (hci_packet[0]){
+            switch (btstack->hci_h4->hci_packet[0]){
                 case HCI_EVENT_PACKET:
-                    bytes_to_read = HCI_EVENT_HEADER_SIZE;
-                    h4_state = H4_W4_EVENT_HEADER;
+                    btstack->hci_h4->bytes_to_read = HCI_EVENT_HEADER_SIZE;
+                    btstack->hci_h4->h4_state = H4_W4_EVENT_HEADER;
                     break;
                 case HCI_ACL_DATA_PACKET:
-                    bytes_to_read = HCI_ACL_HEADER_SIZE;
-                    h4_state = H4_W4_ACL_HEADER;
+                    btstack->hci_h4->bytes_to_read = HCI_ACL_HEADER_SIZE;
+                    btstack->hci_h4->h4_state = H4_W4_ACL_HEADER;
                     break;
                 case HCI_SCO_DATA_PACKET:
-                    bytes_to_read = HCI_SCO_HEADER_SIZE;
-                    h4_state = H4_W4_SCO_HEADER;
+                    btstack->hci_h4->bytes_to_read = HCI_SCO_HEADER_SIZE;
+                    btstack->hci_h4->h4_state = H4_W4_SCO_HEADER;
                     break;
 #ifdef ENABLE_EHCILL
                 case EHCILL_GO_TO_SLEEP_IND:
@@ -251,51 +254,51 @@ static void hci_transport_h4_block_read(void){
                     break;
 #endif
                 default:
-                    log_error("hci_transport_h4: invalid packet type 0x%02x", hci_packet[0]);
-                    hci_transport_h4_reset_statemachine();
+                    log_error("hci_transport_h4: invalid packet type 0x%02x", btstack->hci_h4->hci_packet[0]);
+                    hci_transport_h4_reset_statemachine(btstack);
                     break;
             }
             break;
-            
+
         case H4_W4_EVENT_HEADER:
-            bytes_to_read = hci_packet[2];
+            btstack->hci_h4->bytes_to_read = btstack->hci_h4->hci_packet[2];
             // check Event length
-            if (bytes_to_read > (HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_EVENT_HEADER_SIZE)){
-                log_error("hci_transport_h4: invalid Event len %d - only space for %u", bytes_to_read, HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_EVENT_HEADER_SIZE);
-                hci_transport_h4_reset_statemachine();
+            if (btstack->hci_h4->bytes_to_read > (HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_EVENT_HEADER_SIZE)){
+                log_error("hci_transport_h4: invalid Event len %d - only space for %u", btstack->hci_h4->bytes_to_read, HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_EVENT_HEADER_SIZE);
+                hci_transport_h4_reset_statemachine(btstack);
                 break;
             }
-            h4_state = H4_W4_PAYLOAD;
+            btstack->hci_h4->h4_state = H4_W4_PAYLOAD;
             break;
-            
+
         case H4_W4_ACL_HEADER:
-            bytes_to_read = little_endian_read_16( hci_packet, 3);
+            btstack->hci_h4->bytes_to_read = little_endian_read_16(btstack->hci_h4->hci_packet, 3);
             // check ACL length
-            if (bytes_to_read > (HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_ACL_HEADER_SIZE)){
-                log_error("hci_transport_h4: invalid ACL payload len %d - only space for %u", bytes_to_read, HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_ACL_HEADER_SIZE);
-                hci_transport_h4_reset_statemachine();
+            if (btstack->hci_h4->bytes_to_read > (HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_ACL_HEADER_SIZE)){
+                log_error("hci_transport_h4: invalid ACL payload len %d - only space for %u", btstack->hci_h4->bytes_to_read, HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_ACL_HEADER_SIZE);
+                hci_transport_h4_reset_statemachine(btstack);
                 break;
             }
-            h4_state = H4_W4_PAYLOAD;
+            btstack->hci_h4->h4_state = H4_W4_PAYLOAD;
             break;
-            
+
         case H4_W4_SCO_HEADER:
-            bytes_to_read = hci_packet[3];
+            btstack->hci_h4->bytes_to_read = btstack->hci_h4->hci_packet[3];
             // check SCO length
-            if (bytes_to_read > (HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_SCO_HEADER_SIZE)){
-                log_error("hci_transport_h4: invalid SCO payload len %d - only space for %u", bytes_to_read, HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_SCO_HEADER_SIZE);
-                hci_transport_h4_reset_statemachine();
+            if (btstack->hci_h4->bytes_to_read > (HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_SCO_HEADER_SIZE)){
+                log_error("hci_transport_h4: invalid SCO payload len %d - only space for %u", btstack->hci_h4->bytes_to_read, HCI_INCOMING_PACKET_BUFFER_SIZE - HCI_SCO_HEADER_SIZE);
+                hci_transport_h4_reset_statemachine(btstack);
                 break;
             }
-            h4_state = H4_W4_PAYLOAD;
+            btstack->hci_h4->h4_state = H4_W4_PAYLOAD;
             break;
 
         case H4_W4_PAYLOAD:
-            hci_transport_h4_packet_complete();
+            hci_transport_h4_packet_complete(btstack);
             break;
 
         case H4_OFF:
-            bytes_to_read = 0;
+            btstack->hci_h4->bytes_to_read = 0;
             break;
     }
 
@@ -303,43 +306,43 @@ static void hci_transport_h4_block_read(void){
     if (baudrate_change_workaround_state == BAUDRATE_CHANGE_WORKAROUND_BAUDRATE_COMMAND_SENT){
         baudrate_change_workaround_state = BAUDRATE_CHANGE_WORKAROUND_IDLE;
         // avoid flowcontrol problem by reading expected hci command complete event of 7 bytes in a single block read
-        h4_state = H4_W4_PAYLOAD;
-        bytes_to_read = 7;
+        btstack->hci_h4->h4_state = H4_W4_PAYLOAD;
+        btstack->hci_h4->bytes_to_read = 7;
     }
 #endif
 
     // forward packet if payload size == 0
-    if (h4_state == H4_W4_PAYLOAD && bytes_to_read == 0) {
-        hci_transport_h4_packet_complete();
+    if (btstack->hci_h4->h4_state == H4_W4_PAYLOAD && btstack->hci_h4->bytes_to_read == 0) {
+        hci_transport_h4_packet_complete(btstack);
     }
 
-    if (h4_state != H4_OFF) {
-        hci_transport_h4_trigger_next_read();
+    if (btstack->hci_h4->h4_state != H4_OFF) {
+        hci_transport_h4_trigger_next_read(btstack);
     }
 }
 
-static void hci_transport_h4_block_sent(void){
+static void hci_transport_h4_block_sent(btstack_state_t *btstack){
 
     static const uint8_t packet_sent_event[] = { HCI_EVENT_TRANSPORT_PACKET_SENT, 0};
 
-    switch (tx_state){
+    switch (btstack->hci_h4->tx_state){
         case TX_W4_PACKET_SENT:
             // packet fully sent, reset state
 #ifdef ENABLE_EHCILL
             ehcill_tx_len = 0;
 #endif
-            tx_state = TX_IDLE;
+            btstack->hci_h4->tx_state = TX_IDLE;
 
 #ifdef ENABLE_EHCILL
             // notify eHCILL engine
             hci_transport_h4_ehcill_handle_packet_sent();
 #endif
             // notify upper stack that it can send again
-            packet_handler(HCI_EVENT_PACKET, (uint8_t *) &packet_sent_event[0], sizeof(packet_sent_event));
+            btstack->hci_h4->packet_handler(btstack, HCI_EVENT_PACKET, (uint8_t *) &packet_sent_event[0], sizeof(packet_sent_event));
             break;
 
-#ifdef ENABLE_EHCILL        
-        case TX_W4_EHCILL_SENT: 
+#ifdef ENABLE_EHCILL
+        case TX_W4_EHCILL_SENT:
         case TX_W4_WAKEUP:
             hci_transport_h4_ehcill_handle_ehcill_command_sent();
             break;
@@ -350,12 +353,12 @@ static void hci_transport_h4_block_sent(void){
     }
 }
 
-static int hci_transport_h4_can_send_now(uint8_t packet_type){
+static int hci_transport_h4_can_send_now(btstack_state_t *btstack, uint8_t packet_type){
     UNUSED(packet_type);
-    return tx_state == TX_IDLE;
+    return btstack->hci_h4->tx_state == TX_IDLE;
 }
 
-static int hci_transport_h4_send_packet(uint8_t packet_type, uint8_t * packet, int size){
+static int hci_transport_h4_send_packet(btstack_state_t *btstack, uint8_t packet_type, uint8_t * packet, int size){
 
     // store packet type before actual data and increase size
     size++;
@@ -382,18 +385,19 @@ static int hci_transport_h4_send_packet(uint8_t packet_type, uint8_t * packet, i
             log_info("eHILL: send next packet, state EHCILL_STATE_W2_SEND_SLEEP_ACK");
             return 0;
         default:
-            break;    
+            break;
     }
 #endif
 
     // start sending
-    tx_state = TX_W4_PACKET_SENT;
-    btstack_uart->send_block(packet, size);
+    btstack->hci_h4->tx_state = TX_W4_PACKET_SENT;
+    btstack->hci_h4->btstack_uart->send_block(btstack, packet, size);
     return 0;
 }
 
-static void hci_transport_h4_init(const void * transport_config){
+static void hci_transport_h4_init(btstack_state_t *btstack, const void * transport_config){
     // check for hci_transport_config_uart_t
+    nwt_log("hci_transport_h4_init");
     if (!transport_config) {
         log_error("hci_transport_h4: no config!");
         return;
@@ -405,31 +409,33 @@ static void hci_transport_h4_init(const void * transport_config){
 
     // extract UART config from transport config
     hci_transport_config_uart_t * hci_transport_config_uart = (hci_transport_config_uart_t*) transport_config;
-    uart_config.baudrate    = hci_transport_config_uart->baudrate_init;
-    uart_config.flowcontrol = hci_transport_config_uart->flowcontrol;
-    uart_config.device_name = hci_transport_config_uart->device_name;
+    btstack->hci_h4->uart_config.baudrate    = hci_transport_config_uart->baudrate_init;
+    btstack->hci_h4->uart_config.flowcontrol = hci_transport_config_uart->flowcontrol;
+    btstack->hci_h4->uart_config.device_name = hci_transport_config_uart->device_name;
 
     // set state to off
-    tx_state = TX_OFF;
-    h4_state = H4_OFF;
+    btstack->hci_h4->tx_state = TX_OFF;
+    btstack->hci_h4->h4_state = H4_OFF;
 
     // setup UART driver
-    btstack_uart->init(&uart_config);
-    btstack_uart->set_block_received(&hci_transport_h4_block_read);
-    btstack_uart->set_block_sent(&hci_transport_h4_block_sent);
+    btstack->hci_h4->btstack_uart->init(btstack, &btstack->hci_h4->uart_config);
+    btstack->hci_h4->btstack_uart->set_block_received(btstack, &hci_transport_h4_block_read);
+    btstack->hci_h4->btstack_uart->set_block_sent(btstack, &hci_transport_h4_block_sent);
+    btstack->hci_h4->hci_packet = &btstack->hci_h4->hci_packet_with_pre_buffer[HCI_INCOMING_PRE_BUFFER_SIZE];
 }
 
-static int hci_transport_h4_open(void){
+static int hci_transport_h4_open(btstack_state_t *btstack){
     // open uart driver
-    int res = btstack_uart->open();
+    LH(__func__, __LINE__, 0);
+    int res = btstack->hci_h4->btstack_uart->open(btstack);
     if (res){
         return res;
     }
 
     // init rx + tx state machines
-    hci_transport_h4_reset_statemachine();
-    hci_transport_h4_trigger_next_read();
-    tx_state = TX_IDLE;
+    btstack->hci_h4->tx_state = TX_IDLE;
+    hci_transport_h4_reset_statemachine(btstack);
+    hci_transport_h4_trigger_next_read(btstack);
 
 #ifdef ENABLE_EHCILL
     hci_transport_h4_ehcill_open();
@@ -437,23 +443,17 @@ static int hci_transport_h4_open(void){
     return 0;
 }
 
-static int hci_transport_h4_close(void){
+static int hci_transport_h4_close(btstack_state_t *btstack){
     // set state to off
-    tx_state = TX_OFF;
-    h4_state = H4_OFF;
+    btstack->hci_h4->tx_state = TX_OFF;
+    btstack->hci_h4->h4_state = H4_OFF;
 
     // close uart driver
-    return btstack_uart->close();
+    return btstack->hci_h4->btstack_uart->close(btstack);
 }
 
-static void hci_transport_h4_register_packet_handler(void (*handler)(uint8_t packet_type, uint8_t *packet, uint16_t size)){
-    packet_handler = handler;
-}
-
-static void dummy_handler(uint8_t packet_type, uint8_t *packet, uint16_t size){
-    UNUSED(packet_type);
-    UNUSED(packet);
-    UNUSED(size);
+static void hci_transport_h4_register_packet_handler(btstack_state_t *btstack, void (*handler)(btstack_state_t *btstack, uint8_t packet_type, uint8_t *packet, uint16_t size)){
+    btstack->hci_h4->packet_handler = handler;
 }
 
 //
@@ -472,7 +472,7 @@ static void hci_transport_h4_ehcill_emit_sleep_state(int sleep_active){
     event[0] = HCI_EVENT_TRANSPORT_SLEEP_MODE;
     event[1] = sizeof(event) - 2;
     event[2] = sleep_active;
-    packet_handler(HCI_EVENT_PACKET, &event[0], sizeof(event));        
+    packet_handler(HCI_EVENT_PACKET, &event[0], sizeof(event));
 }
 
 static void hci_transport_h4_ehcill_wakeup_handler(void){
@@ -575,7 +575,7 @@ static void hci_transport_h4_ehcill_trigger_wakeup(void){
 static void hci_transport_h4_ehcill_schedule_ehcill_command(uint8_t command){
 #ifdef ENABLE_LOG_EHCILL
     log_info("eHCILL: schedule eHCILL command %02x", command);
-#endif                
+#endif
     ehcill_command_to_send = command;
     switch (tx_state){
         case TX_IDLE:
@@ -609,7 +609,7 @@ static void hci_transport_h4_ehcill_handle_command(uint8_t action){
                     break;
             }
             break;
-            
+
         case EHCILL_STATE_W2_SEND_SLEEP_ACK:
             switch(action){
                 case EHCILL_WAKE_UP_IND:
@@ -623,7 +623,7 @@ static void hci_transport_h4_ehcill_handle_command(uint8_t action){
 #endif
                     hci_transport_h4_ehcill_schedule_ehcill_command(EHCILL_WAKE_UP_ACK);
                     break;
-                    
+
                 default:
                     break;
             }
@@ -648,12 +648,12 @@ static void hci_transport_h4_ehcill_handle_command(uint8_t action){
 #endif
                     hci_transport_h4_ehcill_schedule_ehcill_command(EHCILL_WAKE_UP_ACK);
                     break;
-                    
+
                 default:
                     break;
             }
             break;
-            
+
         case EHCILL_STATE_W4_WAKEUP_IND_OR_ACK:
             switch(action){
                 case EHCILL_WAKE_UP_IND:
@@ -725,7 +725,7 @@ static void hci_transport_h4_ehcill_handle_ehcill_command_sent(void){
 
 
 // configure and return h4 singleton
-const hci_transport_t * hci_transport_h4_instance(const btstack_uart_block_t * uart_driver) {
+const hci_transport_t * hci_transport_h4_instance(btstack_state_t *btstack, const btstack_uart_block_t * uart_driver) {
 
     static const hci_transport_t hci_transport_h4 = {
             /* const char * name; */                                        "H4",
@@ -740,6 +740,7 @@ const hci_transport_t * hci_transport_h4_instance(const btstack_uart_block_t * u
             /* void   (*set_sco_config)(uint16_t voice_setting, int num_connections); */ NULL,
     };
 
-    btstack_uart = uart_driver;
+    btstack->hci_h4 = calloc(1, sizeof(struct btstack_hci_h4_state));
+    btstack->hci_h4->btstack_uart = uart_driver;
     return &hci_transport_h4;
 }

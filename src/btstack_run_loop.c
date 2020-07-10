@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -46,30 +46,20 @@
 #include "btstack_run_loop.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>  // exit()
 
 
 #include "btstack_debug.h"
 #include "btstack_config.h"
 
-static const btstack_run_loop_t * the_run_loop = NULL;
-
 extern const btstack_run_loop_t btstack_run_loop_embedded;
 
-// assert run loop initialized
-static void btstack_run_loop_assert(void){
-    if (!the_run_loop){
-        log_error("ERROR: run_loop function called before btstack_run_loop_init!");
-        while (true);
-    }
-}
-
-
-void btstack_run_loop_set_timer_handler(btstack_timer_source_t *ts, void (*process)(btstack_timer_source_t *_ts)){
+void btstack_run_loop_set_timer_handler(btstack_timer_source_t *ts, void (*process)(btstack_state_t *btstack, btstack_timer_source_t *_ts)){
     ts->process = process;
 };
 
-void btstack_run_loop_set_data_source_handler(btstack_data_source_t *ds, void (*process)(btstack_data_source_t *_ds,  btstack_data_source_callback_type_t callback_type)){
+void btstack_run_loop_set_data_source_handler(btstack_data_source_t *ds, void (*process)(btstack_state_t *btstack, btstack_data_source_t *_ds,  btstack_data_source_callback_type_t callback_type)){
     ds->process = process;
 };
 
@@ -89,19 +79,17 @@ void * btstack_run_loop_get_data_source_handle(btstack_data_source_t *ds){
     return ds->source.handle;
 }
 
-void btstack_run_loop_enable_data_source_callbacks(btstack_data_source_t *ds, uint16_t callbacks){
-    btstack_run_loop_assert();
-    if (the_run_loop->enable_data_source_callbacks){
-        the_run_loop->enable_data_source_callbacks(ds, callbacks);
+void btstack_run_loop_enable_data_source_callbacks(btstack_state_t *btstack, btstack_data_source_t *ds, uint16_t callbacks){
+    if (btstack->run_loop->run_loop->enable_data_source_callbacks){
+        btstack->run_loop->run_loop->enable_data_source_callbacks(ds, callbacks);
     } else {
         log_error("btstack_run_loop_remove_data_source not implemented");
     }
 }
 
-void btstack_run_loop_disable_data_source_callbacks(btstack_data_source_t *ds, uint16_t callbacks){
-    btstack_run_loop_assert();
-    if (the_run_loop->disable_data_source_callbacks){
-        the_run_loop->disable_data_source_callbacks(ds, callbacks);
+void btstack_run_loop_disable_data_source_callbacks(btstack_state_t *btstack, btstack_data_source_t *ds, uint16_t callbacks){
+    if (btstack->run_loop->run_loop->disable_data_source_callbacks){
+        btstack->run_loop->run_loop->disable_data_source_callbacks(ds, callbacks);
     } else {
         log_error("btstack_run_loop_disable_data_source_callbacks not implemented");
     }
@@ -110,10 +98,9 @@ void btstack_run_loop_disable_data_source_callbacks(btstack_data_source_t *ds, u
 /**
  * Add data_source to run_loop
  */
-void btstack_run_loop_add_data_source(btstack_data_source_t *ds){
-    btstack_run_loop_assert();
-    if (the_run_loop->add_data_source){
-        the_run_loop->add_data_source(ds);
+void btstack_run_loop_add_data_source(btstack_state_t *btstack, btstack_data_source_t *ds){
+    if (btstack->run_loop->run_loop->add_data_source){
+        btstack->run_loop->run_loop->add_data_source(btstack, ds);
     } else {
         log_error("btstack_run_loop_add_data_source not implemented");
     }
@@ -122,19 +109,17 @@ void btstack_run_loop_add_data_source(btstack_data_source_t *ds){
 /**
  * Remove data_source from run loop
  */
-int btstack_run_loop_remove_data_source(btstack_data_source_t *ds){
-    btstack_run_loop_assert();
-    if (the_run_loop->remove_data_source){
-        return the_run_loop->remove_data_source(ds);
+int btstack_run_loop_remove_data_source(btstack_state_t *btstack, btstack_data_source_t *ds){
+    if (btstack->run_loop->run_loop->remove_data_source){
+        return btstack->run_loop->run_loop->remove_data_source(btstack, ds);
     } else {
         log_error("btstack_run_loop_remove_data_source not implemented");
         return 0;
     }
 }
 
-void btstack_run_loop_set_timer(btstack_timer_source_t *a, uint32_t timeout_in_ms){
-    btstack_run_loop_assert();
-    the_run_loop->set_timer(a, timeout_in_ms);
+void btstack_run_loop_set_timer(btstack_state_t *btstack, btstack_timer_source_t *a, uint32_t timeout_in_ms){
+    btstack->run_loop->run_loop->set_timer(btstack, a, timeout_in_ms);
 }
 
 /**
@@ -154,48 +139,43 @@ void * btstack_run_loop_get_timer_context(btstack_timer_source_t *ts){
 /**
  * Add timer to run_loop (keep list sorted)
  */
-void btstack_run_loop_add_timer(btstack_timer_source_t *ts){
-    btstack_run_loop_assert();
-    the_run_loop->add_timer(ts);
+void btstack_run_loop_add_timer(btstack_state_t *btstack, btstack_timer_source_t * ts){
+    btstack->run_loop->run_loop->add_timer(btstack, ts);
 }
 
 /**
  * Remove timer from run loop
  */
-int btstack_run_loop_remove_timer(btstack_timer_source_t *ts){
-    btstack_run_loop_assert();
-    return the_run_loop->remove_timer(ts);
+int btstack_run_loop_remove_timer(btstack_state_t *btstack, btstack_timer_source_t *ts){
+    return btstack->run_loop->run_loop->remove_timer(btstack, ts);
 }
 
 /**
  * @brief Get current time in ms
  */
-uint32_t btstack_run_loop_get_time_ms(void){
-    btstack_run_loop_assert();
-    return the_run_loop->get_time_ms();
+uint32_t btstack_run_loop_get_time_ms(btstack_state_t *btstack){
+    return btstack->run_loop->run_loop->get_time_ms(btstack);
 }
 
 
-void btstack_run_loop_timer_dump(void){
-    btstack_run_loop_assert();
-    the_run_loop->dump_timer();
+void btstack_run_loop_timer_dump(btstack_state_t *btstack){
+    btstack->run_loop->run_loop->dump_timer(btstack);
 }
 
 /**
  * Execute run_loop
  */
-void btstack_run_loop_execute(void){
-    btstack_run_loop_assert();
-    the_run_loop->execute();
+void btstack_run_loop_execute(btstack_state_t *btstack){
+    btstack->run_loop->run_loop->execute(btstack);
 }
 
 // init must be called before any other run_loop call
-void btstack_run_loop_init(const btstack_run_loop_t * run_loop){
-    if (the_run_loop){
-        log_error("ERROR: run loop initialized twice!");
-        while (true);
-    }
-    the_run_loop = run_loop;
-    the_run_loop->init();
+void btstack_run_loop_init(btstack_state_t * btstack, const btstack_run_loop_t * run_loop){
+    btstack_run_loop_state_ptr data = malloc(sizeof(struct btstack_run_loop_state));
+    LH(__func__, __LINE__, 0);
+    memset(data, 0, sizeof(struct btstack_run_loop_state));
+    data->run_loop = run_loop;
+    btstack->run_loop = data;
+    btstack->run_loop->run_loop->init(btstack);
 }
 

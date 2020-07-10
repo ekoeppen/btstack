@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -45,16 +45,22 @@
 #define btstack_run_loop_H
 
 #include "btstack_config.h"
+#include "btstack_state.h"
 
 #include "btstack_bool.h"
 #include "btstack_linked_list.h"
 
 #include <stdint.h>
 
+#ifdef HAVE_POSIX_TIME
+#include <sys/time.h>
+#include <time.h>
+#endif
+
 #if defined __cplusplus
 extern "C" {
 #endif
-	
+
 
 /**
  * Callback types for run loop data sources
@@ -74,11 +80,11 @@ typedef struct btstack_data_source {
 	    // file descriptor for posix systems
 	    int  fd;
     	// handle on windows
-    	void * handle;	
+    	void * handle;
     } source;
 
     // callback to call for enabled callback types
-    void  (*process)(struct btstack_data_source *ds, btstack_data_source_callback_type_t callback_type);
+    void  (*process)(btstack_state_t *btstack, struct btstack_data_source *ds, btstack_data_source_callback_type_t callback_type);
 
     // flags storing enabled callback types
     uint16_t flags;
@@ -86,48 +92,61 @@ typedef struct btstack_data_source {
 } btstack_data_source_t;
 
 typedef struct btstack_timer_source {
-    btstack_linked_item_t item; 
+    btstack_linked_item_t item;
     // timeout in system ticks (HAVE_EMBEDDED_TICK) or milliseconds (HAVE_EMBEDDED_TIME_MS)
     uint32_t timeout;
     // will be called when timer fired
-    void  (*process)(struct btstack_timer_source *ts); 
+    void  (*process)(btstack_state_t *btstack, struct btstack_timer_source *ts);
     void * context;
 } btstack_timer_source_t;
 
 typedef struct btstack_run_loop {
-	void (*init)(void);
-	void (*add_data_source)(btstack_data_source_t * data_source);
-	bool (*remove_data_source)(btstack_data_source_t * data_source);
+	void (*init)(btstack_state_t * state);
+	void (*add_data_source)(btstack_state_t *btstack, btstack_data_source_t * data_source);
+	bool (*remove_data_source)(btstack_state_t *btstack, btstack_data_source_t * data_source);
 	void (*enable_data_source_callbacks)(btstack_data_source_t * data_source, uint16_t callbacks);
 	void (*disable_data_source_callbacks)(btstack_data_source_t * data_source, uint16_t callbacks);
-	void (*set_timer)(btstack_timer_source_t * timer, uint32_t timeout_in_ms);
-	void (*add_timer)(btstack_timer_source_t *timer);
-	bool  (*remove_timer)(btstack_timer_source_t *timer);
-	void (*execute)(void);
-	void (*dump_timer)(void);
-	uint32_t (*get_time_ms)(void);
+	void (*set_timer)(btstack_state_t *btstack, btstack_timer_source_t * timer, uint32_t timeout_in_ms);
+	void (*add_timer)(btstack_state_t *btstack, btstack_timer_source_t *timer);
+	bool  (*remove_timer)(btstack_state_t *btstack, btstack_timer_source_t *timer);
+	void (*execute)(btstack_state_t *btstack);
+	void (*dump_timer)(btstack_state_t *btstack);
+	uint32_t (*get_time_ms)(btstack_state_t *btstack);
 } btstack_run_loop_t;
 
-void btstack_run_loop_timer_dump(void);
+struct btstack_run_loop_state {
+    btstack_linked_list_t data_sources;
+    btstack_linked_list_t timers;
+    const btstack_run_loop_t * run_loop;
+    int trigger_event_received;
+    int data_sources_modified;
+	int exit;
+#ifdef HAVE_POSIX_TIME
+    // start time. tv_usec/tv_nsec = 0
+    struct timespec init_ts;
+#endif
+};
+
+void btstack_run_loop_timer_dump(btstack_state_t *btstack);
 
 /* API_START */
 
 /**
  * @brief Init main run loop. Must be called before any other run loop call.
- *  
- * Use btstack_run_loop_$(btstack_run_loop_TYPE)_get_instance() from btstack_run_loop_$(btstack_run_loop_TYPE).h to get instance 
+ *
+ * Use btstack_run_loop_$(btstack_run_loop_TYPE)_get_instance() from btstack_run_loop_$(btstack_run_loop_TYPE).h to get instance
  */
-void btstack_run_loop_init(const btstack_run_loop_t * run_loop);
+void btstack_run_loop_init(btstack_state_t * state, const btstack_run_loop_t * run_loop);
 
 /**
  * @brief Set timer based on current time in milliseconds.
  */
-void btstack_run_loop_set_timer(btstack_timer_source_t * ts, uint32_t timeout_in_ms);
+void btstack_run_loop_set_timer(btstack_state_t *btstack, btstack_timer_source_t * ts, uint32_t timeout_in_ms);
 
 /**
  * @brief Set callback that will be executed when timer expires.
  */
-void btstack_run_loop_set_timer_handler(btstack_timer_source_t * ts, void (*process)(btstack_timer_source_t *_ts));
+void btstack_run_loop_set_timer_handler(btstack_timer_source_t * ts, void (*process)(btstack_state_t *btstack, btstack_timer_source_t *_ts));
 
 /**
  * @brief Set context for this timer
@@ -142,26 +161,26 @@ void * btstack_run_loop_get_timer_context(btstack_timer_source_t * ts);
 /**
  * @brief Add timer source.
  */
-void btstack_run_loop_add_timer(btstack_timer_source_t * timer); 
+void btstack_run_loop_add_timer(btstack_state_t *btstack, btstack_timer_source_t * timer);
 
 /**
  * @brief Remove timer source.
  */
-int  btstack_run_loop_remove_timer(btstack_timer_source_t * timer);
+int  btstack_run_loop_remove_timer(btstack_state_t *btstack, btstack_timer_source_t * timer);
 
 /**
  * @brief Get current time in ms
  * @note 32-bit ms counter will overflow after approx. 52 days
  */
-uint32_t btstack_run_loop_get_time_ms(void);
+uint32_t btstack_run_loop_get_time_ms(btstack_state_t *btstack);
 
 /**
  * @brief Set data source callback.
  */
-void btstack_run_loop_set_data_source_handler(btstack_data_source_t * data_source, void (*process)(btstack_data_source_t *_ds, btstack_data_source_callback_type_t callback_type));
+void btstack_run_loop_set_data_source_handler(btstack_data_source_t * data_source, void (*process)(btstack_state_t *btstack, btstack_data_source_t *_ds, btstack_data_source_callback_type_t callback_type));
 
 /**
- * @brief Set data source file descriptor. 
+ * @brief Set data source file descriptor.
  * @param data_source
  * @param fd file descriptor
  * @note No effect if port doensn't have file descriptors
@@ -169,14 +188,14 @@ void btstack_run_loop_set_data_source_handler(btstack_data_source_t * data_sourc
 void btstack_run_loop_set_data_source_fd(btstack_data_source_t * data_source, int fd);
 
 /**
- * @brief Get data source file descriptor. 
+ * @brief Get data source file descriptor.
  * @param data_source
  */
 int btstack_run_loop_get_data_source_fd(btstack_data_source_t * data_source);
 
 
 /**
- * @brief Set data source file descriptor. 
+ * @brief Set data source file descriptor.
  * @param data_source
  * @param handle
  * @note No effect if port doensn't have file descriptors
@@ -184,7 +203,7 @@ int btstack_run_loop_get_data_source_fd(btstack_data_source_t * data_source);
 void btstack_run_loop_set_data_source_handle(btstack_data_source_t * data_source, void * handle);
 
 /**
- * @brief Get data source file descriptor. 
+ * @brief Get data source file descriptor.
  * @param data_source
  */
 void * btstack_run_loop_get_data_source_handle(btstack_data_source_t * data_source);
@@ -194,31 +213,31 @@ void * btstack_run_loop_get_data_source_handle(btstack_data_source_t * data_sour
  * @param data_source to remove
  * @param callback types to enable
  */
-void btstack_run_loop_enable_data_source_callbacks(btstack_data_source_t * data_source, uint16_t callbacks);
+void btstack_run_loop_enable_data_source_callbacks(btstack_state_t *btstack, btstack_data_source_t * data_source, uint16_t callbacks);
 
 /**
  * @brief Enable callbacks for a data source
  * @param data_source to remove
  * @param callback types to disable
  */
-void btstack_run_loop_disable_data_source_callbacks(btstack_data_source_t * data_source, uint16_t callbacks);
+void btstack_run_loop_disable_data_source_callbacks(btstack_state_t *btstack, btstack_data_source_t * data_source, uint16_t callbacks);
 
 /**
  * @brief Add data source to run loop
  * @param data_source to add
  */
-void btstack_run_loop_add_data_source(btstack_data_source_t * data_source);
+void btstack_run_loop_add_data_source(btstack_state_t *btstack, btstack_data_source_t * data_source);
 
 /**
  * @brief Remove data source from run loop
  * @param data_source to remove
  */
-int btstack_run_loop_remove_data_source(btstack_data_source_t * data_source);
+int btstack_run_loop_remove_data_source(btstack_state_t *btstack, btstack_data_source_t * data_source);
 
 /**
  * @brief Execute configured run loop. This function does not return.
  */
-void btstack_run_loop_execute(void);
+void btstack_run_loop_execute(btstack_state_t *btstack);
 
 /* API_END */
 

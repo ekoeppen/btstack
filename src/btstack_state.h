@@ -24,7 +24,7 @@
  * RINGWALD OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * OF USE, STATE, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
@@ -35,24 +35,30 @@
  *
  */
 
-#ifndef BTSTACK_STDIN_H
-#define BTSTACK_STDIN_H
+/*
+ *  btstack_state.h
+ *  BTstack state data
+ */
 
-#include "btstack_run_loop.h"
-#include "btstack_state.h"
 
-#if defined __cplusplus
-extern "C" {
-#endif
+#ifndef BTSTACK_STATE_H
+#define BTSTACK_STATE_H
 
-// setup handler for command line interface
-void btstack_stdin_setup(btstack_state_t *btstack, void (*stdin_handler)(char c));
+typedef struct btstack_run_loop_state * btstack_run_loop_state_ptr;
+typedef struct hci_stack * hci_stack_ptr;
+typedef struct btstack_hci_h4_state * btstack_hci_h4_state_ptr;
+typedef struct btstack_l2cap_state * btstack_l2cap_state_ptr;
+typedef struct btstack_sdp_state * btstack_sdp_state_ptr;
+typedef struct btstack_uart_state * btstack_uart_state_ptr;
 
-// gets called by main.c
-void btstack_stdin_reset(btstack_state_t *btstack);
+typedef struct {
+    btstack_run_loop_state_ptr run_loop;
+    hci_stack_ptr hci;
+    btstack_hci_h4_state_ptr hci_h4;
+    btstack_l2cap_state_ptr l2cpi;
+    btstack_sdp_state_ptr sdp;
+    btstack_uart_state_ptr uart;
+} btstack_state_t;
 
-#if defined __cplusplus
-}
-#endif
 
-#endif
+#endif  // __BTSTACK_STATE_H

@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -46,6 +46,7 @@
 #define BTSTACK_UART_BLOCK_H
 
 #include <stdint.h>
+#include "btstack_state.h"
 
 typedef struct {
     uint32_t   baudrate;
@@ -59,66 +60,66 @@ typedef enum {
     // used for eHCILL
     BTSTACK_UART_SLEEP_RTS_HIGH_WAKE_ON_CTS_PULSE,
     // used for H5 and for eHCILL without support for wake on CTS pulse
-    BTSTACK_UART_SLEEP_RTS_LOW_WAKE_ON_RX_EDGE, 
+    BTSTACK_UART_SLEEP_RTS_LOW_WAKE_ON_RX_EDGE,
 
 } btstack_uart_sleep_mode_t;
 
-typedef enum { 
+typedef enum {
     BTSTACK_UART_SLEEP_MASK_RTS_HIGH_WAKE_ON_CTS_PULSE  = 1 << BTSTACK_UART_SLEEP_RTS_HIGH_WAKE_ON_CTS_PULSE,
     BTSTACK_UART_SLEEP_MASK_RTS_LOW_WAKE_ON_RX_EDGE     = 1 << BTSTACK_UART_SLEEP_RTS_LOW_WAKE_ON_RX_EDGE
 } btstack_uart_sleep_mode_mask_t;
 
-typedef struct {
+typedef struct btstack_uart_block {
     /**
      * init transport
      * @param uart_config
      */
-    int (*init)(const btstack_uart_config_t * uart_config);
+    int (*init)(btstack_state_t *btstack, const btstack_uart_config_t * uart_config);
 
     /**
      * open transport connection
      */
-    int (*open)(void);
+    int (*open)(btstack_state_t *btstack);
 
     /**
      * close transport connection
      */
-    int (*close)(void);
+    int (*close)(btstack_state_t *btstack);
 
     /**
      * set callback for block received. NULL disables callback
      */
-    void (*set_block_received)(void (*block_handler)(void));
+    void (*set_block_received)(btstack_state_t *btstack, void (*block_handler)(btstack_state_t *btstack));
 
     /**
      * set callback for sent. NULL disables callback
      */
-    void (*set_block_sent)(void (*block_handler)(void));
+    void (*set_block_sent)(btstack_state_t *btstack, void (*block_handler)(btstack_state_t *btstack));
 
     /**
      * set baudrate
      */
-    int (*set_baudrate)(uint32_t baudrate);
+    int (*set_baudrate)(btstack_state_t *btstack, uint32_t baudrate);
 
     /**
      * set parity
      */
-    int  (*set_parity)(int parity);
+    int  (*set_parity)(btstack_state_t *btstack, int parity);
 
     /**
      * set flowcontrol
      */
-    int  (*set_flowcontrol)(int flowcontrol);
+    int  (*set_flowcontrol)(btstack_state_t *btstack, int flowcontrol);
 
     /**
      * receive block
      */
-    void (*receive_block)(uint8_t *buffer, uint16_t len);
+    void (*receive_block)(btstack_state_t *btstack, uint8_t *buffer, uint16_t len);
 
     /**
      * send block
      */
-    void (*send_block)(const uint8_t *buffer, uint16_t length);
+    void (*send_block)(btstack_state_t *btstack, const uint8_t *buffer, uint16_t length);
 
     // support for sleep modes in TI's H4 eHCILL and H5
 
@@ -137,11 +138,11 @@ typedef struct {
      */
     void (*set_sleep)(btstack_uart_sleep_mode_t sleep_mode);
 
-    /** 
+    /**
      * set wakeup handler - needed to notify hci transport of wakeup requests by Bluetooth controller
      * Called upon CTS pulse or RX data. See sleep modes.
      */
-    void (*set_wakeup_handler)(void (*wakeup_handler)(void));
+    void (*set_wakeup_handler)(btstack_state_t *btstack, void (*wakeup_handler)(btstack_state_t *btstack));
 
 } btstack_uart_block_t;
 

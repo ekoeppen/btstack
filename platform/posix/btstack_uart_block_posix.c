@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -51,6 +51,7 @@
 #include <termios.h>  /* POSIX terminal control definitions */
 #include <fcntl.h>    /* File control definitions */
 #include <unistd.h>   /* UNIX standard function definitions */
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #ifdef __APPLE__
@@ -58,39 +59,43 @@
 #include <IOKit/serial/ioss.h>
 #endif
 
-// uart config
-static const btstack_uart_config_t * uart_config;
+struct btstack_uart_state {
+    // uart config
+    const btstack_uart_config_t * uart_config;
 
-// data source for integration with BTstack Runloop
-static btstack_data_source_t transport_data_source;
+    // data source for integration with BTstack Runloop
+    btstack_data_source_t transport_data_source;
 
-// block write
-static int             write_bytes_len;
-static const uint8_t * write_bytes_data;
+    // block write
+    int             write_bytes_len;
+    const uint8_t * write_bytes_data;
 
-// block read
-static uint16_t  read_bytes_len;
-static uint8_t * read_bytes_data;
+    // block read
+    uint16_t  read_bytes_len;
+    uint8_t * read_bytes_data;
 
-// callbacks
-static void (*block_sent)(void);
-static void (*block_received)(void);
+    // callbacks
+    void (*block_sent)(btstack_state_t *btstack);
+    void (*block_received)(btstack_state_t *btstack);
+};
 
 
-static int btstack_uart_posix_init(const btstack_uart_config_t * config){
-    uart_config = config;
+static int btstack_uart_posix_init(btstack_state_t *btstack, const btstack_uart_config_t * config){
+    btstack->uart = malloc(sizeof(struct btstack_uart_state));
+    btstack->uart->uart_config = config;
+    btstack->uart_block = btstack_uart_block_posix_instance();
     return 0;
 }
 
-static void btstack_uart_posix_process_write(btstack_data_source_t *ds) {
-    
-    if (write_bytes_len == 0) return;
+static void btstack_uart_posix_process_write(btstack_state_t *btstack, btstack_data_source_t *ds) {
 
-    uint32_t start = btstack_run_loop_get_time_ms();
+    if (btstack->uart->write_bytes_len == 0) return;
+
+    uint32_t start = btstack_run_loop_get_time_ms(btstack);
 
     // write up to write_bytes_len to fd
-    int bytes_written = (int) write(ds->source.fd, write_bytes_data, write_bytes_len);
-    uint32_t end = btstack_run_loop_get_time_ms();
+    int bytes_written = (int) write(ds->source.fd, btstack->uart->write_bytes_data, btstack->uart->write_bytes_len);
+    uint32_t end = btstack_run_loop_get_time_ms(btstack);
     if (end - start > 10){
         log_info("write took %u ms", end - start);
     }
@@ -100,39 +105,39 @@ static void btstack_uart_posix_process_write(btstack_data_source_t *ds) {
     }
     if (bytes_written < 0) {
         log_error("write returned error\n");
-        btstack_run_loop_enable_data_source_callbacks(ds, DATA_SOURCE_CALLBACK_WRITE);
+        btstack_run_loop_enable_data_source_callbacks(btstack, ds, DATA_SOURCE_CALLBACK_WRITE);
         return;
     }
 
-    write_bytes_data += bytes_written;
-    write_bytes_len  -= bytes_written;
+    btstack->uart->write_bytes_data += bytes_written;
+    btstack->uart->write_bytes_len  -= bytes_written;
 
-    if (write_bytes_len){
-        btstack_run_loop_enable_data_source_callbacks(ds, DATA_SOURCE_CALLBACK_WRITE);
+    if (btstack->uart->write_bytes_len){
+        btstack_run_loop_enable_data_source_callbacks(btstack, ds, DATA_SOURCE_CALLBACK_WRITE);
         return;
     }
 
-    btstack_run_loop_disable_data_source_callbacks(ds, DATA_SOURCE_CALLBACK_WRITE);
+    btstack_run_loop_disable_data_source_callbacks(btstack, ds, DATA_SOURCE_CALLBACK_WRITE);
 
     // notify done
-    if (block_sent){
-        block_sent();
+    if (btstack->uart->block_sent){
+        btstack->uart->block_sent(btstack);
     }
 }
 
-static void btstack_uart_posix_process_read(btstack_data_source_t *ds) {
+static void btstack_uart_posix_process_read(btstack_state_t *btstack, btstack_data_source_t *ds) {
 
-    if (read_bytes_len == 0) {
+    if (btstack->uart->read_bytes_len == 0) {
         log_info("called but no read pending");
-        btstack_run_loop_disable_data_source_callbacks(ds, DATA_SOURCE_CALLBACK_READ);
+        btstack_run_loop_disable_data_source_callbacks(btstack, ds, DATA_SOURCE_CALLBACK_READ);
     }
 
-    uint32_t start = btstack_run_loop_get_time_ms();
-    
+    uint32_t start = btstack_run_loop_get_time_ms(btstack);
+
     // read up to bytes_to_read data in
-    ssize_t bytes_read = read(ds->source.fd, read_bytes_data, read_bytes_len);
+    ssize_t bytes_read = read(ds->source.fd, btstack->uart->read_bytes_data, btstack->uart->read_bytes_len);
     // log_info("btstack_uart_posix_process_read need %u bytes, got %d", read_bytes_len, (int) bytes_read);
-    uint32_t end = btstack_run_loop_get_time_ms();
+    uint32_t end = btstack_run_loop_get_time_ms(btstack);
     if (end - start > 10){
         log_info("read took %u ms", end - start);
     }
@@ -145,34 +150,34 @@ static void btstack_uart_posix_process_read(btstack_data_source_t *ds) {
         return;
     }
 
-    read_bytes_len   -= bytes_read;
-    read_bytes_data  += bytes_read;
-    if (read_bytes_len > 0) return;
-    
-    btstack_run_loop_disable_data_source_callbacks(ds, DATA_SOURCE_CALLBACK_READ);
+    btstack->uart->read_bytes_len   -= bytes_read;
+    btstack->uart->read_bytes_data  += bytes_read;
+    if (btstack->uart->read_bytes_len > 0) return;
 
-    if (block_received){
-        block_received();
+    btstack_run_loop_disable_data_source_callbacks(btstack, ds, DATA_SOURCE_CALLBACK_READ);
+
+    if (btstack->uart->block_received){
+        btstack->uart->block_received(btstack);
     }
 }
 
-static void hci_uart_posix_process(btstack_data_source_t *ds, btstack_data_source_callback_type_t callback_type) {
+static void hci_uart_posix_process(btstack_state_t *btstack, btstack_data_source_t *ds, btstack_data_source_callback_type_t callback_type) {
     if (ds->source.fd < 0) return;
     switch (callback_type){
         case DATA_SOURCE_CALLBACK_READ:
-            btstack_uart_posix_process_read(ds);
+            btstack_uart_posix_process_read(btstack, ds);
             break;
         case DATA_SOURCE_CALLBACK_WRITE:
-            btstack_uart_posix_process_write(ds);
+            btstack_uart_posix_process_write(btstack, ds);
             break;
         default:
             break;
     }
 }
 
-static int btstack_uart_posix_set_baudrate(uint32_t baudrate){
+static int btstack_uart_posix_set_baudrate(btstack_state_t *btstack, uint32_t baudrate){
 
-    int fd = transport_data_source.source.fd;
+    int fd = btstack->uart->transport_data_source.source.fd;
 
     log_info("h4_set_baudrate %u", baudrate);
 
@@ -198,7 +203,7 @@ static int btstack_uart_posix_set_baudrate(uint32_t baudrate){
         log_error("btstack_uart_posix_set_baudrate: Couldn't get term attributes");
         return -1;
     }
-    
+
     speed_t brate = baudrate; // let you override switch below if needed
     switch(baudrate) {
         case    9600: brate=B9600;    break;
@@ -281,8 +286,8 @@ static void btstack_uart_posix_set_flowcontrol_option(struct termios * toptions,
     }
 }
 
-static int btstack_uart_posix_set_parity(int parity){
-    int fd = transport_data_source.source.fd;
+static int btstack_uart_posix_set_parity(btstack_state_t *btstack, int parity){
+    int fd = btstack->uart->transport_data_source.source.fd;
     struct termios toptions;
     if (tcgetattr(fd, &toptions) < 0) {
         log_error("Couldn't get term attributes");
@@ -297,8 +302,8 @@ static int btstack_uart_posix_set_parity(int parity){
 }
 
 
-static int btstack_uart_posix_set_flowcontrol(int flowcontrol){
-    int fd = transport_data_source.source.fd;
+static int btstack_uart_posix_set_flowcontrol(btstack_state_t *btstack, int flowcontrol){
+    int fd = btstack->uart->transport_data_source.source.fd;
     struct termios toptions;
     if (tcgetattr(fd, &toptions) < 0) {
         log_error("Couldn't get term attributes");
@@ -312,11 +317,11 @@ static int btstack_uart_posix_set_flowcontrol(int flowcontrol){
     return 0;
 }
 
-static int btstack_uart_posix_open(void){
+static int btstack_uart_posix_open(btstack_state_t *btstack){
 
-    const char * device_name = uart_config->device_name;
-    const int flowcontrol    = uart_config->flowcontrol;
-    const uint32_t baudrate  = uart_config->baudrate;
+    const char * device_name = btstack->uart->uart_config->device_name;
+    const int flowcontrol    = btstack->uart->uart_config->flowcontrol;
+    const uint32_t baudrate  = btstack->uart->uart_config->baudrate;
 
     struct termios toptions;
     int flags = O_RDWR | O_NOCTTY | O_NONBLOCK;
@@ -325,12 +330,12 @@ static int btstack_uart_posix_open(void){
         log_error("Unable to open port %s", device_name);
         return -1;
     }
-    
+
     if (tcgetattr(fd, &toptions) < 0) {
         log_error("Couldn't get term attributes");
         return -1;
     }
-    
+
     cfmakeraw(&toptions);   // make raw
 
     // 8N1
@@ -339,11 +344,11 @@ static int btstack_uart_posix_open(void){
 
     toptions.c_cflag |= CREAD | CLOCAL;  // turn on READ & ignore ctrl lines
     toptions.c_iflag &= ~(IXON | IXOFF | IXANY); // turn off s/w flow ctrl
-    
+
     // see: http://unixwiz.net/techtips/termios-vmin-vtime.html
     toptions.c_cc[VMIN]  = 1;
     toptions.c_cc[VTIME] = 0;
-    
+
     // no parity
     btstack_uart_posix_set_parity_option(&toptions, 0);
 
@@ -356,57 +361,57 @@ static int btstack_uart_posix_open(void){
     }
 
     // store fd in data source
-    transport_data_source.source.fd = fd;
-    
+    btstack->uart->transport_data_source.source.fd = fd;
+
     // also set baudrate
-    if (btstack_uart_posix_set_baudrate(baudrate) < 0){
+    if (btstack_uart_posix_set_baudrate(btstack, baudrate) < 0){
         return -1;
     }
 
     // set up data_source
-    btstack_run_loop_set_data_source_fd(&transport_data_source, fd);
-    btstack_run_loop_set_data_source_handler(&transport_data_source, &hci_uart_posix_process);
-    btstack_run_loop_add_data_source(&transport_data_source);
+    btstack_run_loop_set_data_source_fd(&btstack->uart->transport_data_source, fd);
+    btstack_run_loop_set_data_source_handler(&btstack->uart->transport_data_source, &hci_uart_posix_process);
+    btstack_run_loop_add_data_source(btstack, &btstack->uart->transport_data_source);
 
     // wait a bit - at least cheap FTDI232 clones might send the first byte out incorrectly
     usleep(100000);
 
     return 0;
-} 
+}
 
-static int btstack_uart_posix_close_new(void){
+static int btstack_uart_posix_close_new(btstack_state_t *btstack){
 
     // first remove run loop handler
-    btstack_run_loop_remove_data_source(&transport_data_source);
-    
-    // then close device 
-    close(transport_data_source.source.fd);
-    transport_data_source.source.fd = -1;
+    btstack_run_loop_remove_data_source(btstack, &btstack->uart->transport_data_source);
+
+    // then close device
+    close(btstack->uart->transport_data_source.source.fd);
+    btstack->uart->transport_data_source.source.fd = -1;
     return 0;
 }
 
-static void btstack_uart_posix_set_block_received( void (*block_handler)(void)){
-    block_received = block_handler;
+static void btstack_uart_posix_set_block_received(btstack_state_t *btstack, void (*block_handler)(btstack_state_t *btstack)){
+    btstack->uart->block_received = block_handler;
 }
 
-static void btstack_uart_posix_set_block_sent( void (*block_handler)(void)){
-    block_sent = block_handler;
+static void btstack_uart_posix_set_block_sent(btstack_state_t *btstack, void (*block_handler)(btstack_state_t *btstack)){
+    btstack->uart->block_sent = block_handler;
 }
 
-static void btstack_uart_posix_send_block(const uint8_t *data, uint16_t size){
+static void btstack_uart_posix_send_block(btstack_state_t *btstack, const uint8_t *data, uint16_t size){
     // setup async write
-    write_bytes_data = data;
-    write_bytes_len  = size;
+    btstack->uart->write_bytes_data = data;
+    btstack->uart->write_bytes_len  = size;
 
     // go
     // btstack_uart_posix_process_write(&transport_data_source);
-    btstack_run_loop_enable_data_source_callbacks(&transport_data_source, DATA_SOURCE_CALLBACK_WRITE);
+    btstack_run_loop_enable_data_source_callbacks(btstack, &btstack->uart->transport_data_source, DATA_SOURCE_CALLBACK_WRITE);
 }
 
-static void btstack_uart_posix_receive_block(uint8_t *buffer, uint16_t len){
-    read_bytes_data = buffer;
-    read_bytes_len = len;
-    btstack_run_loop_enable_data_source_callbacks(&transport_data_source, DATA_SOURCE_CALLBACK_READ);
+static void btstack_uart_posix_receive_block(btstack_state_t *btstack, uint8_t *buffer, uint16_t len){
+    btstack->uart->read_bytes_data = buffer;
+    btstack->uart->read_bytes_len = len;
+    btstack_run_loop_enable_data_source_callbacks(btstack, &btstack->uart->transport_data_source, DATA_SOURCE_CALLBACK_READ);
 
     // go
     // btstack_uart_posix_process_read(&transport_data_source);

@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -62,11 +62,13 @@
 
 #ifdef HAVE_POSIX_FILE_IO
 #include <fcntl.h>        // open
-#include <unistd.h>       // write 
+#include <unistd.h>       // write
 #include <time.h>
 #include <sys/time.h>     // for timestamps
 #include <sys/stat.h>     // for mode flags
 #endif
+
+#include "log.h"
 
 #ifdef ENABLE_SEGGER_RTT
 #include "SEGGER_RTT.h"
@@ -109,7 +111,7 @@ pktlog_hdr;
 #define PKTLOG_HDR_SIZE 13
 
 static int dump_file = -1;
-static int dump_format;
+static const int dump_format = HCI_DUMP_PACKETLOGGER;
 #ifdef HAVE_POSIX_FILE_IO
 static char time_string[40];
 static int  max_nr_packets = -1;
@@ -125,7 +127,7 @@ static int log_level_enabled[3] = { 1, 1, 1};
 
 void hci_dump_open(const char *filename, hci_dump_format_t format){
 
-    dump_format = format;
+    // dump_format = format;
 
 #ifdef HAVE_POSIX_FILE_IO
     if (dump_format == HCI_DUMP_STDOUT) {
@@ -155,7 +157,7 @@ void hci_dump_open(const char *filename, hci_dump_format_t format){
             break;
     }
 #endif
-    
+
     dump_file = 1;
 #endif
 }
@@ -230,7 +232,7 @@ static void printf_packet(uint8_t packet_type, uint8_t in, uint8_t * packet, uin
         default:
             return;
     }
-    printf_hexdump(packet, len);  
+    printf_hexdump(packet, len);
 }
 
 static void printf_timestamp(void){
@@ -250,20 +252,20 @@ static void printf_timestamp(void){
     /* Print the formatted time, in seconds, followed by a decimal point and the milliseconds. */
     printf ("%s.%03u] ", time_string, milliseconds);
 #else
-    uint32_t time_ms = btstack_run_loop_get_time_ms();
+    uint32_t time_ms = 0; //btstack_run_loop_get_time_ms();
     int      seconds = time_ms / 1000;
     int      minutes = seconds / 60;
     unsigned int hours = minutes / 60;
 
     uint16_t p_ms      = time_ms - (seconds * 1000);
     uint16_t p_seconds = seconds - (minutes * 60);
-    uint16_t p_minutes = minutes - (hours   * 60);     
+    uint16_t p_minutes = minutes - (hours   * 60);
     printf("[%02u:%02u:%02u.%03u] ", hours, p_minutes, p_seconds, p_ms);
 #endif
 }
 
 void hci_dump_packet(uint8_t packet_type, uint8_t in, uint8_t *packet, uint16_t len) {
-
+#ifndef forARM
     static union {
         uint8_t header_bluez[HCIDUMP_HDR_SIZE];
         uint8_t header_packetlogger[PKTLOG_HDR_SIZE];
@@ -288,7 +290,7 @@ void hci_dump_packet(uint8_t packet_type, uint8_t in, uint8_t *packet, uint16_t 
     if (dump_format == HCI_DUMP_STDOUT){
         printf_timestamp();
         printf_packet(packet_type, in, packet, len);
-        return;        
+        return;
     }
 
     uint32_t tv_sec = 0;
@@ -301,7 +303,7 @@ void hci_dump_packet(uint8_t packet_type, uint8_t in, uint8_t *packet, uint16_t 
     tv_sec = curr_time.tv_sec;
     tv_us  = curr_time.tv_usec;
 #else
-    uint32_t time_ms = btstack_run_loop_get_time_ms();
+    uint32_t time_ms = 0; //btstack_run_loop_get_time_ms();
     tv_us   = time_ms * 1000;
     tv_sec  = 946728000UL + (time_ms / 1000);
 #endif
@@ -357,6 +359,7 @@ void hci_dump_packet(uint8_t packet_type, uint8_t in, uint8_t *packet, uint16_t 
     SEGGER_RTT_Write(SEGGER_RTT_PACKETLOG_CHANNEL, packet, len);
 #endif
     UNUSED(header_len);
+#endif
 }
 
 static int hci_dump_log_level_active(int log_level){
@@ -375,7 +378,6 @@ void hci_dump_log_va_arg(int log_level, const char * format, va_list argptr){
         return;
     }
 #endif
-
     printf_timestamp();
     printf("LOG -- ");
     vprintf(format, argptr);

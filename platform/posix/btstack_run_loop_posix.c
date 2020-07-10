@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -60,46 +60,32 @@
 #include <time.h>
 #include <unistd.h>
 
-static void btstack_run_loop_posix_dump_timer(void);
-
-// the run loop
-static btstack_linked_list_t data_sources;
-static int data_sources_modified;
-static btstack_linked_list_t timers;
-
-// start time. tv_usec/tv_nsec = 0
-#ifdef _POSIX_MONOTONIC_CLOCK
-// use monotonic clock if available
-static struct timespec init_ts;
-#else
-// fallback to gettimeofday
-static struct timeval init_tv;
-#endif
+static void btstack_run_loop_posix_dump_timer(btstack_state_t *btstack);
 
 /**
  * Add data_source to run_loop
  */
-static void btstack_run_loop_posix_add_data_source(btstack_data_source_t *ds){
-    data_sources_modified = 1;
-    // log_info("btstack_run_loop_posix_add_data_source %x with fd %u\n", (int) ds, ds->source.fd);
-    btstack_linked_list_add(&data_sources, (btstack_linked_item_t *) ds);
+static void btstack_run_loop_posix_add_data_source(btstack_state_t *btstack, btstack_data_source_t *ds){
+    btstack->run_loop->data_sources_modified = 1;
+    log_info("btstack_run_loop_posix_add_data_source %x with fd %u\n", (int) ds, ds->source.fd);
+    btstack_linked_list_add(&btstack->run_loop->data_sources, (btstack_linked_item_t *) ds);
 }
 
 /**
  * Remove data_source from run loop
  */
-static bool btstack_run_loop_posix_remove_data_source(btstack_data_source_t *ds){
-    data_sources_modified = 1;
+static bool btstack_run_loop_posix_remove_data_source(btstack_state_t *btstack, btstack_data_source_t *ds){
+    btstack->run_loop->data_sources_modified = 1;
     log_debug("btstack_run_loop_posix_remove_data_source %p\n", ds);
-    return btstack_linked_list_remove(&data_sources, (btstack_linked_item_t *) ds);
+    return btstack_linked_list_remove(&btstack->run_loop->data_sources, (btstack_linked_item_t *) ds);
 }
 
 /**
  * Add timer to run_loop (keep list sorted)
  */
-static void btstack_run_loop_posix_add_timer(btstack_timer_source_t *ts){
+static void btstack_run_loop_posix_add_timer(btstack_state_t *btstack, btstack_timer_source_t *ts){
     btstack_linked_item_t *it;
-    for (it = (btstack_linked_item_t *) &timers; it->next ; it = it->next){
+    for (it = (btstack_linked_item_t *) &btstack->run_loop->timers; it->next ; it = it->next){
         btstack_timer_source_t * next = (btstack_timer_source_t *) it->next;
         btstack_assert(next != ts);
         // exit if new timeout before list timeout
@@ -115,16 +101,16 @@ static void btstack_run_loop_posix_add_timer(btstack_timer_source_t *ts){
 /**
  * Remove timer from run loop
  */
-static bool btstack_run_loop_posix_remove_timer(btstack_timer_source_t *ts){
+static bool btstack_run_loop_posix_remove_timer(btstack_state_t *btstack, btstack_timer_source_t *ts){
     // log_info("Removed timer %x at %u\n", (int) ts, (unsigned int) ts->timeout.tv_sec);
     // btstack_run_loop_posix_dump_timer();
-    return btstack_linked_list_remove(&timers, (btstack_linked_item_t *) ts);
+    return btstack_linked_list_remove(&btstack->run_loop->timers, (btstack_linked_item_t *) ts);
 }
 
-static void btstack_run_loop_posix_dump_timer(void){
+static void btstack_run_loop_posix_dump_timer(btstack_state_t *btstack){
     btstack_linked_item_t *it;
     int i = 0;
-    for (it = (btstack_linked_item_t *) timers; it ; it = it->next){
+    for (it = (btstack_linked_item_t *) btstack->run_loop->timers; it ; it = it->next){
         btstack_timer_source_t *ts = (btstack_timer_source_t*) it;
         log_info("timer %u (%p): timeout %u\n", i, ts, ts->timeout);
     }
@@ -177,12 +163,12 @@ static uint64_t timespec_diff_milis(struct timespec* start, struct timespec* sto
 /**
  * @brief Queries the current time in ms since start
  */
-static uint32_t btstack_run_loop_posix_get_time_ms(void){
+static uint32_t btstack_run_loop_posix_get_time_ms(btstack_state_t *btstack){
     uint32_t time_ms;
 #ifdef _POSIX_MONOTONIC_CLOCK
     struct timespec now_ts;
     clock_gettime(CLOCK_MONOTONIC, &now_ts);
-    time_ms = (uint32_t) timespec_diff_milis(&init_ts, &now_ts);
+    time_ms = (uint32_t) timespec_diff_milis(&btstack->run_loop->init_ts, &now_ts);
 #else
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -194,10 +180,10 @@ static uint32_t btstack_run_loop_posix_get_time_ms(void){
 /**
  * Execute run_loop
  */
-static void btstack_run_loop_posix_execute(void) {
+static void btstack_run_loop_posix_execute(btstack_state_t *btstack) {
     fd_set descriptors_read;
     fd_set descriptors_write;
-    
+
     btstack_timer_source_t       *ts;
     btstack_linked_list_iterator_t it;
     struct timeval * timeout;
@@ -215,7 +201,7 @@ static void btstack_run_loop_posix_execute(void) {
         FD_ZERO(&descriptors_read);
         FD_ZERO(&descriptors_write);
         int highest_fd = -1;
-        btstack_linked_list_iterator_init(&it, &data_sources);
+        btstack_linked_list_iterator_init(&it, &btstack->run_loop->data_sources);
         while (btstack_linked_list_iterator_has_next(&it)){
             btstack_data_source_t *ds = (btstack_data_source_t*) btstack_linked_list_iterator_next(&it);
             if (ds->source.fd < 0) continue;
@@ -234,14 +220,14 @@ static void btstack_run_loop_posix_execute(void) {
                 log_debug("btstack_run_loop_execute adding fd %u for write", ds->source.fd);
             }
         }
-        
+
         // get next timeout
         timeout = NULL;
-        if (timers) {
-            ts = (btstack_timer_source_t *) timers;
+        if (btstack->run_loop->timers) {
+            ts = (btstack_timer_source_t *) btstack->run_loop->timers;
             timeout = &tv;
             uint32_t list_timeout  = ts->timeout;
-            now_ms = btstack_run_loop_posix_get_time_ms();
+            now_ms = btstack_run_loop_posix_get_time_ms(btstack);
             int32_t delta = btstack_time_delta(list_timeout, now_ms);
             if (delta < 0){
                 delta = 0;
@@ -250,60 +236,56 @@ static void btstack_run_loop_posix_execute(void) {
             tv.tv_usec = (int) (delta - (tv.tv_sec * 1000)) * 1000;
             log_debug("btstack_run_loop_execute next timeout in %u ms", delta);
         }
-                
+
         // wait for ready FDs
         select( highest_fd+1 , &descriptors_read, &descriptors_write, NULL, timeout);
-                
 
-        data_sources_modified = 0;
-        btstack_linked_list_iterator_init(&it, &data_sources);
-        while (btstack_linked_list_iterator_has_next(&it) && !data_sources_modified){
+
+        btstack->run_loop->data_sources_modified = 0;
+        btstack_linked_list_iterator_init(&it, &btstack->run_loop->data_sources);
+        while (btstack_linked_list_iterator_has_next(&it) && !btstack->run_loop->data_sources_modified){
             btstack_data_source_t *ds = (btstack_data_source_t*) btstack_linked_list_iterator_next(&it);
             log_debug("btstack_run_loop_posix_execute: check ds %p with fd %u\n", ds, ds->source.fd);
             if (FD_ISSET(ds->source.fd, &descriptors_read)) {
                 log_debug("btstack_run_loop_posix_execute: process read ds %p with fd %u\n", ds, ds->source.fd);
-                ds->process(ds, DATA_SOURCE_CALLBACK_READ);
+                ds->process(btstack, ds, DATA_SOURCE_CALLBACK_READ);
             }
-            if (data_sources_modified) break;
+            if (btstack->run_loop->data_sources_modified) break;
             if (FD_ISSET(ds->source.fd, &descriptors_write)) {
                 log_debug("btstack_run_loop_posix_execute: process write ds %p with fd %u\n", ds, ds->source.fd);
-                ds->process(ds, DATA_SOURCE_CALLBACK_WRITE);
+                ds->process(btstack, ds, DATA_SOURCE_CALLBACK_WRITE);
             }
         }
         log_debug("btstack_run_loop_posix_execute: after ds check\n");
-        
+
         // process timers
-        now_ms = btstack_run_loop_posix_get_time_ms();
-        while (timers) {
-            ts = (btstack_timer_source_t *) timers;
+        now_ms = btstack_run_loop_posix_get_time_ms(btstack);
+        while (btstack->run_loop->timers) {
+            ts = (btstack_timer_source_t *) btstack->run_loop->timers;
             int32_t delta = btstack_time_delta(ts->timeout, now_ms);
             if (delta > 0) break;
             log_debug("btstack_run_loop_posix_execute: process timer %p\n", ts);
-            
+
             // remove timer before processing it to allow handler to re-register with run loop
-            btstack_run_loop_posix_remove_timer(ts);
-            ts->process(ts);
+            btstack_run_loop_posix_remove_timer(btstack, ts);
+            ts->process(btstack, ts);
         }
     }
 }
 
 // set timer
-static void btstack_run_loop_posix_set_timer(btstack_timer_source_t *a, uint32_t timeout_in_ms){
-    uint32_t time_ms = btstack_run_loop_posix_get_time_ms();
+static void btstack_run_loop_posix_set_timer(btstack_state_t *btstack, btstack_timer_source_t *a, uint32_t timeout_in_ms){
+    uint32_t time_ms = btstack_run_loop_posix_get_time_ms(btstack);
     a->timeout = time_ms + timeout_in_ms;
     log_debug("btstack_run_loop_posix_set_timer to %u ms (now %u, timeout %u)", a->timeout, time_ms, timeout_in_ms);
 }
 
-static void btstack_run_loop_posix_init(void){
-    data_sources = NULL;
-    timers = NULL;
+static void btstack_run_loop_posix_init(btstack_state_t *btstack){
+    btstack->run_loop->data_sources = NULL;
+    btstack->run_loop->timers = NULL;
 #ifdef _POSIX_MONOTONIC_CLOCK
-    clock_gettime(CLOCK_MONOTONIC, &init_ts);
-    init_ts.tv_nsec = 0;
-#else
-    // just assume that we started at tv_usec == 0
-    gettimeofday(&init_tv, NULL);
-    init_tv.tv_usec = 0;
+    clock_gettime(CLOCK_MONOTONIC, &btstack->run_loop->init_ts);
+    btstack->run_loop->init_ts.tv_nsec = 0;
 #endif
 }
 

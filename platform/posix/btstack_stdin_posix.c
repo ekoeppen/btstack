@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -53,7 +53,7 @@ static int activated = 0;
 static void (*stdin_handler)(char c);
 
 // read single byte after data source callback was triggered
-static void stdin_process(btstack_data_source_t *ds, btstack_data_source_callback_type_t callback_type){
+static void stdin_process(btstack_state_t *btstack, btstack_data_source_t *ds, btstack_data_source_callback_type_t callback_type){
     UNUSED(ds);
     UNUSED(callback_type);
 
@@ -65,7 +65,7 @@ static void stdin_process(btstack_data_source_t *ds, btstack_data_source_callbac
     (*stdin_handler)(data);
 }
 
-void btstack_stdin_setup(void (*handler)(char c)){
+void btstack_stdin_setup(btstack_state_t *btstack, void (*handler)(char c)){
 
     if (activated) return;
 
@@ -83,19 +83,19 @@ void btstack_stdin_setup(void (*handler)(char c)){
 
     btstack_run_loop_set_data_source_fd(&stdin_source, 0); // stdin
 
-    btstack_run_loop_enable_data_source_callbacks(&stdin_source, DATA_SOURCE_CALLBACK_READ);
+    btstack_run_loop_enable_data_source_callbacks(btstack, &stdin_source, DATA_SOURCE_CALLBACK_READ);
     btstack_run_loop_set_data_source_handler(&stdin_source, stdin_process);
-    btstack_run_loop_add_data_source(&stdin_source);
+    btstack_run_loop_add_data_source(btstack, &stdin_source);
 
     activated = 1;
 }
 
-void btstack_stdin_reset(void){
+void btstack_stdin_reset(btstack_state_t *btstack){
     if (!activated) return;
     activated = 0;
     stdin_handler = NULL;
 
-    btstack_run_loop_remove_data_source(&stdin_source);    
+    btstack_run_loop_remove_data_source(btstack, &stdin_source);
 
     struct termios term = {0};
     if (tcgetattr(0, &term) < 0){

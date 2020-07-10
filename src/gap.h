@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -71,13 +71,13 @@ typedef enum {
 	// Encryption required
 	// 128-bit equivalent strength for link and encryption keys required (P-192 is not enough)
 	// User interaction acceptable
-	LEVEL_4,	
+	LEVEL_4,
 } gap_security_level_t;
 
 typedef enum {
 	GAP_SECURITY_NONE,
 	GAP_SECUIRTY_ENCRYPTED,		// SSP: JUST WORKS
-	GAP_SECURITY_AUTHENTICATED, // SSP: numeric comparison, passkey, OOB 
+	GAP_SECURITY_AUTHENTICATED, // SSP: numeric comparison, passkey, OOB
 	// GAP_SECURITY_AUTHORIZED
 } gap_security_state;
 
@@ -121,25 +121,25 @@ typedef enum {
  * @brief Disconnect connection with handle
  * @param handle
  */
-uint8_t gap_disconnect(hci_con_handle_t handle);
+uint8_t gap_disconnect(btstack_state_t *btstack, hci_con_handle_t handle);
 
 /**
  * @brief Get connection type
  * @param con_handle
  * @result connection_type
  */
-gap_connection_type_t gap_get_connection_type(hci_con_handle_t connection_handle);
+gap_connection_type_t gap_get_connection_type(btstack_state_t *btstack, hci_con_handle_t connection_handle);
 
 // Classic
 
-/** 
+/**
  * @brief Sets local name.
  * @note has to be done before stack starts up
  * @note Default name is 'BTstack 00:00:00:00:00:00'
  * @note '00:00:00:00:00:00' in local_name will be replaced with actual bd addr
  * @param name is not copied, make sure memory is accessible during stack startup
  */
-void gap_set_local_name(const char * local_name);
+void gap_set_local_name(btstack_state_t *btstack, const char * local_name);
 
 /**
  * @brief Set Extended Inquiry Response data
@@ -148,13 +148,13 @@ void gap_set_local_name(const char * local_name);
  * @note '00:00:00:00:00:00' in local_name will be replaced with actual bd addr
  * @param eir_data size HCI_EXTENDED_INQUIRY_RESPONSE_DATA_LEN (240) bytes, is not copied make sure memory is accessible during stack startup
  */
-void gap_set_extended_inquiry_response(const uint8_t * data); 
+void gap_set_extended_inquiry_response(btstack_state_t *btstack, const uint8_t * data);
 
 /**
  * @brief Set class of device that will be set during Bluetooth init.
  * @note has to be done before stack starts up
  */
-void gap_set_class_of_device(uint32_t class_of_device);
+void gap_set_class_of_device(btstack_state_t *btstack, uint32_t class_of_device);
 
 /**
  * @brief Set default link policy settings for all classic ACL links
@@ -162,82 +162,82 @@ void gap_set_class_of_device(uint32_t class_of_device);
  * @note common value: LM_LINK_POLICY_ENABLE_ROLE_SWITCH | LM_LINK_POLICY_ENABLE_SNIFF_MODE to enable role switch and sniff mode
  * @note has to be done before stack starts up
  */
-void gap_set_default_link_policy_settings(uint16_t default_link_policy_settings);
+void gap_set_default_link_policy_settings(btstack_state_t *btstack, uint16_t default_link_policy_settings);
 
 /**
  * @brief Set Allow Role Switch param for outgoing classic ACL links
  * @param allow_role_switch - true: allow remote device to request role switch, false: stay master
  */
-void gap_set_allow_role_switch(bool allow_role_switch);
+void gap_set_allow_role_switch(btstack_state_t *btstack, bool allow_role_switch);
 
 /**
  * @brief Set  link supervision timeout for outgoing classic ACL links
  * @param default_link_supervision_timeout * 0.625 ms, default 0x7d00 = 20 seconds
  */
-void gap_set_link_supervision_timeout(uint16_t link_supervision_timeout);
+void gap_set_link_supervision_timeout(btstack_state_t *btstack, uint16_t link_supervision_timeout);
 
 /**
  * @brief Enable/disable bonding. Default is enabled.
  * @param enabled
  */
-void gap_set_bondable_mode(int enabled);
+void gap_set_bondable_mode(btstack_state_t *btstack, int enabled);
 
-/**  
+/**
  * @brief Get bondable mode.
  * @return 1 if bondable
  */
-int gap_get_bondable_mode(void);
+int gap_get_bondable_mode(btstack_state_t *btstack);
 
 /**
  * @brief Set security level for all outgoing and incoming connections. Default: LEVEL_2
  * @param security_level
  * @note has to be called before services or profiles are initialized
  */
-void gap_set_security_level(gap_security_level_t security_level);
+void gap_set_security_level(btstack_state_t *btstack, gap_security_level_t security_level);
 
 /**
  * @brief Get security level
  * @return security_level
  */
-gap_security_level_t gap_get_security_level(void);
+gap_security_level_t gap_get_security_level(btstack_state_t *btstack);
 
 /**
  * @brief Register filter for rejecting classic connections. Callback will return 1 accept connection, 0 on reject.
  */
-void gap_register_classic_connection_filter(int (*accept_callback)(bd_addr_t addr));
+void gap_register_classic_connection_filter(btstack_state_t *btstack, int (*accept_callback)(bd_addr_t addr));
 
 /* Configure Secure Simple Pairing */
 
 /**
  * @brief Enable will enable SSP during init. Default: true
  */
-void gap_ssp_set_enable(int enable);
+void gap_ssp_set_enable(btstack_state_t *btstack, int enable);
 
 /**
  * @brief Set IO Capability. BTstack will return capability to SSP requests
  */
-void gap_ssp_set_io_capability(int ssp_io_capability);
+void gap_ssp_set_io_capability(btstack_state_t *btstack, int ssp_io_capability);
 
 /**
  * @brief Set Authentication Requirements using during SSP
  */
-void gap_ssp_set_authentication_requirement(int authentication_requirement);
+void gap_ssp_set_authentication_requirement(btstack_state_t *btstack, int authentication_requirement);
 
 /**
  * @brief Enable/disable Secure Connections. Default: true if supported by Controller
  */
-void gap_secure_connections_enable(bool enable);
+void gap_secure_connections_enable(btstack_state_t *btstack, bool enable);
 
 /**
  * @brief If set, BTstack will confirm a numeric comparison and enter '000000' if requested.
  */
-void gap_ssp_set_auto_accept(int auto_accept);
+void gap_ssp_set_auto_accept(btstack_state_t *btstack, int auto_accept);
 
 /**
  * @brief Set required encryption key size for GAP Levels 1-3 on ccassic connections. Default: 16 bytes
  * @param encryption_key_size in bytes. Valid 7..16
  */
-void gap_set_required_encryption_key_size(uint8_t encryption_key_size);
+void gap_set_required_encryption_key_size(btstack_state_t *btstack, uint8_t encryption_key_size);
 
 /**
  * @brief Start dedicated bonding with device. Disconnect after bonding.
@@ -246,7 +246,7 @@ void gap_set_required_encryption_key_size(uint8_t encryption_key_size);
  * @return error, if max num acl connections active
  * @result GAP_DEDICATED_BONDING_COMPLETE
  */
-int gap_dedicated_bonding(bd_addr_t device, int mitm_protection_required);
+int gap_dedicated_bonding(btstack_state_t *btstack, bd_addr_t device, int mitm_protection_required);
 
 gap_security_level_t gap_security_level_for_link_key_type(link_key_type_t link_key_type);
 
@@ -260,9 +260,9 @@ int gap_secure_connection_for_link_key_type(link_key_type_t link_key_type);
  */
 int gap_authenticated_for_link_key_type(link_key_type_t link_key_type);
 
-gap_security_level_t gap_security_level(hci_con_handle_t con_handle);
+gap_security_level_t gap_security_level(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
-void gap_request_security_level(hci_con_handle_t con_handle, gap_security_level_t level);
+void gap_request_security_level(btstack_state_t *btstack, hci_con_handle_t con_handle, gap_security_level_t level);
 
 int  gap_mitm_protection_required_for_security_level(gap_security_level_t level);
 
@@ -274,7 +274,7 @@ int  gap_mitm_protection_required_for_security_level(gap_security_level_t level)
 void gap_set_scan_parameters(uint8_t scan_type, uint16_t scan_interval, uint16_t scan_window);
 
 /**
- * @brief Start LE Scan 
+ * @brief Start LE Scan
  */
 void gap_start_scan(void);
 
@@ -300,7 +300,7 @@ gap_random_address_type_t gap_random_address_get_mode(void);
  */
  void gap_random_address_set_update_period(int period_ms);
 
-/** 
+/**
  * @brief Sets a fixed random address for advertising
  * @param addr
  * @note Sets random address mode to type off
@@ -330,13 +330,13 @@ void gap_advertisements_set_data(uint8_t advertising_data_length, uint8_t * adve
 void gap_advertisements_set_params(uint16_t adv_int_min, uint16_t adv_int_max, uint8_t adv_type,
 	uint8_t direct_address_typ, bd_addr_t direct_address, uint8_t channel_map, uint8_t filter_policy);
 
-/** 
+/**
  * @brief Enable/Disable Advertisements. OFF by default.
  * @param enabled
  */
 void gap_advertisements_enable(int enabled);
 
-/** 
+/**
  * @brief Set Scan Response Data
  *
  * @note For scan response data, scannable undirected advertising (ADV_SCAN_IND) need to be used
@@ -359,7 +359,7 @@ void gap_scan_response_set_data(uint8_t scan_response_data_length, uint8_t * sca
  * @param min_ce_length (unit: 0.625ms), default: 10 ms
  * @param max_ce_length (unit: 0.625ms), default: 30 ms
  */
-void gap_set_connection_parameters(uint16_t conn_scan_interval, uint16_t conn_scan_window, 
+void gap_set_connection_parameters(uint16_t conn_scan_interval, uint16_t conn_scan_window,
     uint16_t conn_interval_min, uint16_t conn_interval_max, uint16_t conn_latency,
     uint16_t supervision_timeout, uint16_t min_ce_length, uint16_t max_ce_length);
 
@@ -391,13 +391,13 @@ int gap_update_connection_parameters(hci_con_handle_t con_handle, uint16_t conn_
  * @brief Set accepted connection parameter range
  * @param range
  */
-void gap_get_connection_parameter_range(le_connection_parameter_range_t * range);
+void gap_get_connection_parameter_range(btstack_state_t *btstack, le_connection_parameter_range_t * range);
 
 /**
  * @brief Get accepted connection parameter range
  * @param range
  */
-void gap_set_connection_parameter_range(le_connection_parameter_range_t * range);
+void gap_set_connection_parameter_range(btstack_state_t *btstack, le_connection_parameter_range_t * range);
 
 /**
  * @brief Test if connection parameters are inside in existing rage
@@ -414,7 +414,7 @@ int gap_connection_parameter_range_included(le_connection_parameter_range_t * ex
  * @note: default: 1
  * @param max_peripheral_connections
  */
-void gap_set_max_number_peripheral_connections(int max_peripheral_connections);
+void gap_set_max_number_peripheral_connections(btstack_state_t *btstack, int max_peripheral_connections);
 
 /**
  * @brief Connect to remote LE device
@@ -461,7 +461,7 @@ uint8_t gap_le_set_phy(hci_con_handle_t con_handle, uint8_t all_phys, uint8_t tx
 
 /**
  * @brief Get connection interval
- * @return connection interval, otherwise 0 if error 
+ * @return connection interval, otherwise 0 if error
  */
 uint16_t gap_le_connection_interval(hci_con_handle_t connection_handle);
 
@@ -501,43 +501,43 @@ authorization_state_t gap_authorization_state(hci_con_handle_t con_handle);
  * @note Might be used to reduce power consumption while Bluetooth module stays powered but no (new)
  *       connections are expected
  */
-void gap_connectable_control(uint8_t enable);
+void gap_connectable_control(btstack_state_t *btstack, uint8_t enable);
 
 /**
  * @brief Allows to control if device is discoverable. OFF by default.
  */
-void gap_discoverable_control(uint8_t enable);
+void gap_discoverable_control(btstack_state_t *btstack, uint8_t enable);
 
 /**
  * @brief Gets local address.
  */
-void gap_local_bd_addr(bd_addr_t address_buffer);
+void gap_local_bd_addr(btstack_state_t *btstack, bd_addr_t address_buffer);
 
 /**
  * @brief Deletes link key for remote device with baseband address.
  * @param addr
  */
-void gap_drop_link_key_for_bd_addr(bd_addr_t addr);
+void gap_drop_link_key_for_bd_addr(btstack_state_t *btstack, bd_addr_t addr);
 
 /**
  * @brief Delete all stored link keys
  */
-void gap_delete_all_link_keys(void);
+void gap_delete_all_link_keys(btstack_state_t *btstack);
 
-/** 
+/**
  * @brief Store link key for remote device with baseband address
  * @param addr
  * @param link_key
  * @param link_key_type
  */
-void gap_store_link_key_for_bd_addr(bd_addr_t addr, link_key_t link_key, link_key_type_t type);
+void gap_store_link_key_for_bd_addr(btstack_state_t *btstack, bd_addr_t addr, link_key_t link_key, link_key_type_t type);
 
 /**
  * @brief Setup Link Key iterator
  * @param it
  * @returns 1 on success
  */
-int gap_link_key_iterator_init(btstack_link_key_iterator_t * it);
+int gap_link_key_iterator_init(btstack_state_t *btstack, btstack_link_key_iterator_t * it);
 
 /**
  * @brief Get next Link Key
@@ -547,14 +547,14 @@ int gap_link_key_iterator_init(btstack_link_key_iterator_t * it);
  * @brief type of link key
  * @returns 1, if valid link key found
  */
-int gap_link_key_iterator_get_next(btstack_link_key_iterator_t * it, bd_addr_t bd_addr, link_key_t link_key, link_key_type_t * type);
+int gap_link_key_iterator_get_next(btstack_state_t *btstack, btstack_link_key_iterator_t * it, bd_addr_t bd_addr, link_key_t link_key, link_key_type_t * type);
 
 /**
  * @brief Frees resources allocated by iterator_init
  * @note Must be called after iteration to free resources
  * @param it
  */
-void gap_link_key_iterator_done(btstack_link_key_iterator_t * it);
+void gap_link_key_iterator_done(btstack_state_t *btstack, btstack_link_key_iterator_t * it);
 
 /**
  * @brief Start GAP Classic Inquiry
@@ -562,7 +562,7 @@ void gap_link_key_iterator_done(btstack_link_key_iterator_t * it);
  * @return 0 if ok
  * @events: GAP_EVENT_INQUIRY_RESULT, GAP_EVENT_INQUIRY_COMPLETE
  */
-int gap_inquiry_start(uint8_t duration_in_1280ms_units);
+int gap_inquiry_start(btstack_state_t *btstack, uint8_t duration_in_1280ms_units);
 
 /**
  * @brief Stop GAP Classic Inquiry
@@ -570,7 +570,7 @@ int gap_inquiry_start(uint8_t duration_in_1280ms_units);
  * @returns 0 if ok
  * @events: GAP_EVENT_INQUIRY_COMPLETE
  */
-int gap_inquiry_stop(void);
+int gap_inquiry_stop(btstack_state_t *btstack);
 
 /**
  * @brief Remote Name Request
@@ -579,14 +579,14 @@ int gap_inquiry_stop(void);
  * @param clock_offset only used when bit 15 is set - pass 0 if not known
  * @events: HCI_EVENT_REMOTE_NAME_REQUEST_COMPLETE
  */
-int gap_remote_name_request(bd_addr_t addr, uint8_t page_scan_repetition_mode, uint16_t clock_offset);
+int gap_remote_name_request(btstack_state_t *btstack, bd_addr_t addr, uint8_t page_scan_repetition_mode, uint16_t clock_offset);
 
 /**
  * @brief Read RSSI
  * @param con_handle
  * @events: GAP_EVENT_RSSI_MEASUREMENT
  */
-int gap_read_rssi(hci_con_handle_t con_handle);
+int gap_read_rssi(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * @brief Legacy Pairing Pin Code Response
@@ -594,7 +594,7 @@ int gap_read_rssi(hci_con_handle_t con_handle);
  * @param pin
  * @return 0 if ok
  */
-int gap_pin_code_response(bd_addr_t addr, const char * pin);
+int gap_pin_code_response(btstack_state_t *btstack, bd_addr_t addr, const char * pin);
 
 /**
  * @brief Abort Legacy Pairing
@@ -602,7 +602,7 @@ int gap_pin_code_response(bd_addr_t addr, const char * pin);
  * @param pin
  * @return 0 if ok
  */
-int gap_pin_code_negative(bd_addr_t addr);
+int gap_pin_code_negative(btstack_state_t *btstack, bd_addr_t addr);
 
 /**
  * @brief SSP Passkey Response
@@ -610,7 +610,7 @@ int gap_pin_code_negative(bd_addr_t addr);
  * @param passkey [0..999999]
  * @return 0 if ok
  */
-int gap_ssp_passkey_response(bd_addr_t addr, uint32_t passkey);
+int gap_ssp_passkey_response(btstack_state_t *btstack, bd_addr_t addr, uint32_t passkey);
 
 /**
  * @brief Abort SSP Passkey Entry/Pairing
@@ -618,7 +618,7 @@ int gap_ssp_passkey_response(bd_addr_t addr, uint32_t passkey);
  * @param pin
  * @return 0 if ok
  */
-int gap_ssp_passkey_negative(bd_addr_t addr);
+int gap_ssp_passkey_negative(btstack_state_t *btstack, bd_addr_t addr);
 
 /**
  * @brief Accept SSP Numeric Comparison
@@ -626,7 +626,7 @@ int gap_ssp_passkey_negative(bd_addr_t addr);
  * @param passkey
  * @return 0 if ok
  */
-int gap_ssp_confirmation_response(bd_addr_t addr);
+int gap_ssp_confirmation_response(btstack_state_t *btstack, bd_addr_t addr);
 
 /**
  * @brief Abort SSP Numeric Comparison/Pairing
@@ -634,7 +634,7 @@ int gap_ssp_confirmation_response(bd_addr_t addr);
  * @param pin
  * @return 0 if ok
  */
-int gap_ssp_confirmation_negative(bd_addr_t addr);
+int gap_ssp_confirmation_negative(btstack_state_t *btstack, bd_addr_t addr);
 
 /**
  * @brief Enter Sniff mode
@@ -645,14 +645,14 @@ int gap_ssp_confirmation_negative(bd_addr_t addr);
  * @param sniff_timeout Number of Baseband receive slots for sniff timeout.
  @ @return 0 if ok
  */
-uint8_t gap_sniff_mode_enter(hci_con_handle_t con_handle, uint16_t sniff_min_interval, uint16_t sniff_max_interval, uint16_t sniff_attempt, uint16_t sniff_timeout);
+uint8_t gap_sniff_mode_enter(btstack_state_t *btstack, hci_con_handle_t con_handle, uint16_t sniff_min_interval, uint16_t sniff_max_interval, uint16_t sniff_attempt, uint16_t sniff_timeout);
 
 /**
  * @brief Exit Sniff mode
  * @param con_handle
  @ @return 0 if ok
  */
-uint8_t gap_sniff_mode_exit(hci_con_handle_t con_handle);
+uint8_t gap_sniff_mode_exit(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 // LE
 

@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -49,13 +49,9 @@
 
 #include "btstack_run_loop_base.h"
 
-// private data (access only by run loop implementations)
-btstack_linked_list_t btstack_run_loop_base_timers;
-btstack_linked_list_t btstack_run_loop_base_data_sources;
-
 void btstack_run_loop_base_init(void){
     btstack_run_loop_base_timers = NULL;
-    btstack_run_loop_base_data_sources = NULL;    
+    btstack_run_loop_base_data_sources = NULL;
 }
 
 void btstack_run_loop_base_add_data_source(btstack_data_source_t *ds){

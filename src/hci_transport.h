@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -50,18 +50,19 @@
 #include "btstack_uart_block.h"
 #include "btstack_em9304_spi.h"
 #include "btstack_defines.h"
+#include "btstack_state.h"
 
 #if defined __cplusplus
 extern "C" {
 #endif
 
-    
+
 /* API_START */
 
 /* HCI packet types */
 typedef struct {
     /**
-     * transport name 
+     * transport name
      */
     const char * name;
 
@@ -69,37 +70,37 @@ typedef struct {
      * init transport
      * @param transport_config
      */
-    void   (*init) (const void *transport_config);
+    void   (*init) (btstack_state_t *btstack, const void *transport_config);
 
     /**
      * open transport connection
      */
-    int    (*open)(void);
+    int    (*open)(btstack_state_t *btstack);
 
     /**
      * close transport connection
      */
-    int    (*close)(void);
+    int    (*close)(btstack_state_t *btstack);
 
     /**
      * register packet handler for HCI packets: ACL, SCO, and Events
      */
-    void   (*register_packet_handler)(void (*handler)(uint8_t packet_type, uint8_t *packet, uint16_t size));
+    void   (*register_packet_handler)(btstack_state_t *btstack, void (*handler)(btstack_state_t *btstack, uint8_t packet_type, uint8_t *packet, uint16_t size));
 
     /**
      * support async transport layers, e.g. IRQ driven without buffers
      */
-    int    (*can_send_packet_now)(uint8_t packet_type);
+    int    (*can_send_packet_now)(btstack_state_t *btstack, uint8_t packet_type);
 
     /**
      * send packet
      */
-    int    (*send_packet)(uint8_t packet_type, uint8_t *packet, int size);
+    int    (*send_packet)(btstack_state_t *btstack, uint8_t packet_type, uint8_t *packet, int size);
 
     /**
      * extension for UART transport implementations
      */
-    int    (*set_baudrate)(uint32_t baudrate);
+    int    (*set_baudrate)(btstack_state_t *btstack, uint32_t baudrate);
 
     /**
      * extension for UART H5 on CSR: reset BCSP/H5 Link
@@ -126,7 +127,7 @@ typedef struct {
     hci_transport_config_type_t type; // == HCI_TRANSPORT_CONFIG_UART
     uint32_t   baudrate_init; // initial baud rate
     uint32_t   baudrate_main; // = 0: same as initial baudrate
-    int        flowcontrol;   // 
+    int        flowcontrol;   //
     const char *device_name;
 } hci_transport_config_uart_t;
 
@@ -135,19 +136,19 @@ typedef struct {
 
 /*
  * @brief Setup H4 instance with uart_driver
- * @param uart_driver to use 
+ * @param uart_driver to use
  */
-const hci_transport_t * hci_transport_h4_instance(const btstack_uart_block_t * uart_driver);
+const hci_transport_t * hci_transport_h4_instance(btstack_state_t *btstack, const btstack_uart_block_t * uart_driver);
 
 /*
  * @brief Setup H5 instance with uart_driver
- * @param uart_driver to use 
+ * @param uart_driver to use
  */
 const hci_transport_t * hci_transport_h5_instance(const btstack_uart_block_t * uart_driver);
 
 /*
  * @brief Setup H4 over SPI instance for EM9304 with em9304_spi_driver
- * @param em9304_spi_driver to use 
+ * @param em9304_spi_driver to use
  */
 const hci_transport_t * hci_transport_em9304_spi_instance(const btstack_em9304_spi_t * em9304_spi_driver);
 
@@ -173,7 +174,7 @@ const hci_transport_t * hci_transport_usb_instance(void);
 void hci_transport_usb_set_path(int len, uint8_t * port_numbers);
 
 /* API_END */
-    
+
 #if defined __cplusplus
 }
 #endif

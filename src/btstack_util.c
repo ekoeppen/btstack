@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -238,7 +238,7 @@ static void log_hexdump(int level, const void * data, int size){
         buffer[j++] = char_for_high_nibble(byte);
         buffer[j++] = char_for_low_nibble(byte);
         buffer[j++] = ',';
-        buffer[j++] = ' ';     
+        buffer[j++] = ' ';
 
         if (j >= (BYTES_PER_BYTE * ITEMS_PER_LINE) ){
             buffer[j] = 0;
@@ -304,6 +304,7 @@ int uuid_has_bluetooth_prefix(const uint8_t * uuid128){
     return memcmp(&uuid128[4], &bluetooth_base_uuid[4], 12) == 0;
 }
 
+#if 0
 static char uuid128_to_str_buffer[32+4+1];
 char * uuid128_to_str(const uint8_t * uuid){
     int i;
@@ -320,7 +321,13 @@ char * uuid128_to_str(const uint8_t * uuid){
     }
     return uuid128_to_str_buffer;
 }
+#else
+char * uuid128_to_str(const uint8_t * uuid){
+    return "00000000-0000-0000-0000-000000000000";
+}
+#endif
 
+#if 0 // :TODO:
 static char bd_addr_to_str_buffer[6*3];  // 12:45:78:01:34:67\0
 char * bd_addr_to_str(const bd_addr_t addr){
     // orig code
@@ -337,6 +344,11 @@ char * bd_addr_to_str(const bd_addr_t addr){
     *--p = 0;
     return (char *) bd_addr_to_str_buffer;
 }
+#else
+char * bd_addr_to_str(const bd_addr_t addr){
+    return "xx:xx:xx:xx:xx:xx:xx";
+}
+#endif
 
 void btstack_replace_bd_addr_placeholder(uint8_t * buffer, uint16_t size, const bd_addr_t address){
     const int bd_addr_string_len = 17;
@@ -404,7 +416,7 @@ int string_len_for_uint32(uint32_t i){
     if (i <       1000) return 3;
     if (i <      10000) return 4;
     if (i <     100000) return 5;
-    if (i <    1000000) return 6;      
+    if (i <    1000000) return 6;
     if (i <   10000000) return 7;
     if (i <  100000000) return 8;
     if (i < 1000000000) return 9;
@@ -420,12 +432,12 @@ int count_set_bits_uint32(uint32_t x){
     return x;
 }
 
-/*  
+/*
  * CRC (reversed crc) lookup table as calculated by the table generator in ETSI TS 101 369 V6.3.0.
  */
 
-#define CRC8_INIT  0xFF          // Initial FCS value 
-#define CRC8_OK    0xCF          // Good final FCS value 
+#define CRC8_INIT  0xFF          // Initial FCS value
+#define CRC8_OK    0xCF          // Good final FCS value
 
 static const uint8_t crc8table[256] = {    /* reversed, 8-bit, poly=0x07 */
     0x00, 0x91, 0xE3, 0x72, 0x07, 0x96, 0xE4, 0x75, 0x0E, 0x9F, 0xED, 0x7C, 0x09, 0x98, 0xEA, 0x7B,
@@ -465,7 +477,7 @@ uint8_t btstack_crc8_check(uint8_t *data, uint16_t len, uint8_t check_sum){
         return 0;               /* Valid */
     } else {
         return 1;               /* Failed */
-    } 
+    }
 }
 
 /*-----------------------------------------------------------------------------------*/

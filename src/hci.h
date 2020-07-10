@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -46,6 +46,7 @@
 #define HCI_H
 
 #include "btstack_config.h"
+#include "btstack_state.h"
 
 #include "btstack_chipset.h"
 #include "btstack_control.h"
@@ -68,7 +69,7 @@
 #if defined __cplusplus
 extern "C" {
 #endif
-     
+
 // packet buffer sizes
 #define HCI_CMD_HEADER_SIZE          3
 #define HCI_ACL_HEADER_SIZE          4
@@ -98,7 +99,7 @@ extern "C" {
 #endif
 
 #define HCI_ACL_BUFFER_SIZE        (HCI_ACL_HEADER_SIZE   + HCI_ACL_PAYLOAD_SIZE)
-    
+
 // size of hci incoming buffer, big enough for event or acl packet without H4 packet type
 #ifdef HCI_INCOMING_PACKET_BUFFER_SIZE
     #if HCI_INCOMING_PACKET_BUFFER_SIZE < HCI_ACL_BUFFER_SIZE
@@ -149,7 +150,7 @@ extern "C" {
 #endif
 #endif
 
-// 
+//
 #define IS_COMMAND(packet, command) ( little_endian_read_16(packet,0) == command.opcode )
 
 // check if command complete event for given command
@@ -171,7 +172,7 @@ extern "C" {
 
 /**
  * LE connection parameter update state
- */ 
+ */
 
 typedef enum {
     CON_PARAMETER_UPDATE_NONE,
@@ -213,7 +214,7 @@ typedef enum {
 } hci_authentication_flags_t;
 
 /**
- * Connection State 
+ * Connection State
  */
 typedef enum {
     SEND_CREATE_CONNECTION = 0,
@@ -273,7 +274,7 @@ typedef enum {
 
     // Phase 2: Authenticating and Encrypting
 
-    // get random number for use as TK Passkey if we show it 
+    // get random number for use as TK Passkey if we show it
     SM_PH2_GET_RANDOM_TK,
     SM_PH2_W4_RANDOM_TK,
 
@@ -349,8 +350,8 @@ typedef enum {
     SM_SC_W2_CMAC_FOR_CONFIRMATION,
     SM_SC_W4_CMAC_FOR_CONFIRMATION,
     SM_SC_SEND_CONFIRMATION,
-    SM_SC_W2_CMAC_FOR_CHECK_CONFIRMATION,    
-    SM_SC_W4_CMAC_FOR_CHECK_CONFIRMATION,    
+    SM_SC_W2_CMAC_FOR_CHECK_CONFIRMATION,
+    SM_SC_W4_CMAC_FOR_CHECK_CONFIRMATION,
     SM_SC_W4_CONFIRMATION,
     SM_SC_SEND_PAIRING_RANDOM,
     SM_SC_W4_PAIRING_RANDOM,
@@ -435,7 +436,7 @@ typedef struct {
     uint8_t                 ir_lookup_active;
     uint8_t                 pairing_active;
 
-    int                     value_indication_handle;    
+    int                     value_indication_handle;
     btstack_timer_source_t  value_indication_timer;
 
     att_connection_t        connection;
@@ -472,10 +473,10 @@ typedef struct {
 typedef struct {
     // linked list - assert: first field
     btstack_linked_item_t    item;
-    
+
     // remote side
     bd_addr_t address;
-    
+
     // module handle
     hci_con_handle_t con_handle;
 
@@ -487,7 +488,7 @@ typedef struct {
 
     // connection state
     CONNECTION_STATE state;
-    
+
     // bonding
     uint16_t bonding_flags;
     uint8_t  bonding_status;
@@ -497,8 +498,8 @@ typedef struct {
 
     // requested security level
     gap_security_level_t requested_security_level;
-    
-    // 
+
+    //
     link_key_type_t link_key_type;
 
     // remote supported features
@@ -521,7 +522,7 @@ typedef struct {
 
     // generate sco can send now based on received packets, using timeout below
     uint8_t  sco_tx_ready;
-    
+
     btstack_timer_source_t timeout_sco;
 #endif /* ENABLE_CLASSIC */
 
@@ -537,7 +538,7 @@ typedef struct {
     uint8_t  acl_recombination_buffer[HCI_INCOMING_PRE_BUFFER_SIZE + 4 + HCI_ACL_BUFFER_SIZE];
     uint16_t acl_recombination_pos;
     uint16_t acl_recombination_length;
-    
+
 
     // number packets sent to controller
     uint8_t num_packets_sent;
@@ -581,7 +582,7 @@ typedef struct {
 } hci_connection_t;
 
 
-/** 
+/**
  * HCI Inititizlization State Machine
  */
 typedef enum hci_init_state{
@@ -675,7 +676,7 @@ typedef enum hci_init_state{
     HCI_INIT_LE_WRITE_SUGGESTED_DATA_LENGTH,
     HCI_INIT_W4_LE_WRITE_SUGGESTED_DATA_LENGTH,
 #endif
-    
+
 #ifdef ENABLE_LE_CENTRAL
     HCI_INIT_READ_WHITE_LIST_SIZE,
     HCI_INIT_W4_READ_WHITE_LIST_SIZE,
@@ -717,17 +718,17 @@ typedef struct {
     btstack_linked_item_t  item;
     bd_addr_t      address;
     bd_addr_type_t address_type;
-    uint8_t        state;   
+    uint8_t        state;
 } whitelist_entry_t;
 
 /**
  * main data structure
  */
-typedef struct {
+typedef struct hci_stack {
     // transport component with configuration
     const hci_transport_t * hci_transport;
     const void            * config;
-    
+
     // chipset driver
     const btstack_chipset_t * chipset;
 
@@ -784,7 +785,7 @@ typedef struct {
     uint16_t  acl_fragmentation_pos;
     uint16_t  acl_fragmentation_total_size;
     uint8_t   acl_fragmentation_tx_active;
-     
+
     /* host to controller flow control */
     uint8_t  num_cmd_packets;
     uint8_t  acl_packets_total_num;
@@ -822,8 +823,8 @@ typedef struct {
 
     // usable packet types given acl_data_packet_length and HCI_ACL_BUFFER_SIZE
     uint16_t packet_types;
-    
-    
+
+
     /* hci state machine */
     HCI_STATE      state;
     hci_substate_t substate;
@@ -854,7 +855,7 @@ typedef struct {
         const char * gap_pairing_pin;
         uint32_t     gap_pairing_passkey;
     } gap_pairing_input;
-    
+
     uint16_t  sco_voice_setting;
     uint16_t  sco_voice_setting_active;
 
@@ -882,7 +883,7 @@ typedef struct {
 
     // buffer for le scan type command - 0xff not set
     uint8_t  le_scan_type;
-    uint16_t le_scan_interval;  
+    uint16_t le_scan_interval;
     uint16_t le_scan_window;
 
     // LE Whitelist Management
@@ -931,11 +932,12 @@ typedef struct {
 #endif
 
     // custom BD ADDR
-    bd_addr_t custom_bd_addr; 
+    bd_addr_t custom_bd_addr;
     uint8_t   custom_bd_addr_set;
 
 #ifdef ENABLE_CLASSIC
     uint8_t master_slave_policy;
+    uint8_t disable_l2cap_timeouts;
 #endif
 
     // address and address_type of active create connection command (ACL, SCO, LE)
@@ -943,101 +945,100 @@ typedef struct {
     bd_addr_type_t outgoing_addr_type;
 } hci_stack_t;
 
-
 /* API_START */
 
-    
+
 // HCI init and configuration
 
 
 /**
  * @brief Set up HCI. Needs to be called before any other function.
  */
-void hci_init(const hci_transport_t *transport, const void *config);
+void hci_init(btstack_state_t * btstack, const hci_transport_t *transport, const void *config);
 
 /**
  * @brief Configure Bluetooth chipset driver. Has to be called before power on, or right after receiving the local version information.
  */
-void hci_set_chipset(const btstack_chipset_t *chipset_driver);
+void hci_set_chipset(btstack_state_t *btstack, const btstack_chipset_t *chipset_driver);
 
 /**
  * @brief Configure Bluetooth hardware control. Has to be called before power on.
  */
-void hci_set_control(const btstack_control_t *hardware_control);
+void hci_set_control(btstack_state_t *btstack, const btstack_control_t *hardware_control);
 
 /**
  * @brief Configure Bluetooth hardware control. Has to be called before power on.
  */
-void hci_set_link_key_db(btstack_link_key_db_t const * link_key_db);
+void hci_set_link_key_db(btstack_state_t *btstack, btstack_link_key_db_t const * link_key_db);
 
 /**
  * @brief Set callback for Bluetooth Hardware Error
  */
-void hci_set_hardware_error_callback(void (*fn)(uint8_t error));
+void hci_set_hardware_error_callback(btstack_state_t *btstack, void (*fn)(uint8_t error));
 
 /**
  * @brief Set Public BD ADDR - passed on to Bluetooth chipset during init if supported in bt_control_h
  */
-void hci_set_bd_addr(bd_addr_t addr);
+void hci_set_bd_addr(btstack_state_t *btstack, bd_addr_t addr);
 
-/** 
+/**
  * @brief Configure Voice Setting for use with SCO data in HSP/HFP
  */
-void hci_set_sco_voice_setting(uint16_t voice_setting);
+void hci_set_sco_voice_setting(btstack_state_t *btstack, uint16_t voice_setting);
 
 /**
  * @brief Get SCO Voice Setting
  * @return current voice setting
  */
-uint16_t hci_get_sco_voice_setting(void);
+uint16_t hci_get_sco_voice_setting(btstack_state_t *btstack);
 
 /**
  * @brief Set inquiry mode: standard, with RSSI, with RSSI + Extended Inquiry Results. Has to be called before power on.
  * @param inquriy_mode see bluetooth_defines.h
  */
-void hci_set_inquiry_mode(inquiry_mode_t mode);
+void hci_set_inquiry_mode(btstack_state_t *btstack, inquiry_mode_t mode);
 
 /**
  * @brief Requests the change of BTstack power mode.
  */
-int  hci_power_control(HCI_POWER_MODE mode);
+int  hci_power_control(btstack_state_t *btstack, HCI_POWER_MODE mode);
 
 /**
  * @brief Shutdown HCI
  */
-void hci_close(void);
+void hci_close(btstack_state_t *btstack);
 
 
 // Callback registration
 
 
 /**
- * @brief Add event packet handler. 
+ * @brief Add event packet handler.
  */
-void hci_add_event_handler(btstack_packet_callback_registration_t * callback_handler);
+void hci_add_event_handler(btstack_state_t *btstack, btstack_packet_callback_registration_t * callback_handler);
 
 /**
  * @brief Registers a packet handler for ACL data. Used by L2CAP
  */
-void hci_register_acl_packet_handler(btstack_packet_handler_t handler);
+void hci_register_acl_packet_handler(btstack_state_t *btstack, btstack_packet_handler_t handler);
 
 /**
  * @brief Registers a packet handler for SCO data. Used for HSP and HFP profiles.
  */
-void hci_register_sco_packet_handler(btstack_packet_handler_t handler);
+void hci_register_sco_packet_handler(btstack_state_t *btstack, btstack_packet_handler_t handler);
 
 
 // Sending HCI Commands
 
-/** 
+/**
  * @brief Check if CMD packet can be sent to controller
  */
-int hci_can_send_command_packet_now(void);
+int hci_can_send_command_packet_now(btstack_state_t *btstack);
 
 /**
- * @brief Creates and sends HCI command packets based on a template and a list of parameters. Will return error if outgoing data buffer is occupied. 
+ * @brief Creates and sends HCI command packets based on a template and a list of parameters. Will return error if outgoing data buffer is occupied.
  */
-int hci_send_cmd(const hci_cmd_t *cmd, ...);
+int hci_send_cmd(btstack_state_t *btstack, const hci_cmd_t *cmd, ...);
 
 
 // Sending SCO Packets
@@ -1053,22 +1054,22 @@ int hci_get_sco_packet_length(void);
  * @note HCI_EVENT_SCO_CAN_SEND_NOW might be emitted during call to this function
  *       so packet handler should be ready to handle it
  */
-void hci_request_sco_can_send_now_event(void);
+void hci_request_sco_can_send_now_event(btstack_state_t *btstack);
 
 /**
  * @brief Check HCI packet buffer and if SCO packet can be sent to controller
  */
-int hci_can_send_sco_packet_now(void);
+int hci_can_send_sco_packet_now(btstack_state_t *btstack);
 
 /**
  * @brief Check if SCO packet can be sent to controller
  */
-int hci_can_send_prepared_sco_packet_now(void);
+int hci_can_send_prepared_sco_packet_now(btstack_state_t *btstack);
 
 /**
  * @brief Send SCO packet prepared in HCI packet buffer
  */
-int hci_send_sco_packet_buffer(int size);
+int hci_send_sco_packet_buffer(btstack_state_t *btstack, int size);
 
 
 // Outgoing packet buffer, also used for SCO packets
@@ -1078,24 +1079,24 @@ int hci_send_sco_packet_buffer(int size);
  * Reserves outgoing packet buffer.
  * @return 1 on success
  */
-int hci_reserve_packet_buffer(void);
+int hci_reserve_packet_buffer(btstack_state_t *btstack);
 
 /**
  * Get pointer for outgoing packet buffer
  */
-uint8_t* hci_get_outgoing_packet_buffer(void);
+uint8_t* hci_get_outgoing_packet_buffer(btstack_state_t *btstack);
 
 /**
  * Release outgoing packet buffer\
  * @note only called instead of hci_send_preparared
  */
-void hci_release_packet_buffer(void);
+void hci_release_packet_buffer(btstack_state_t *btstack);
 
 /**
 * @brief Sets the master/slave policy
 * @param policy (0: attempt to become master, 1: let connecting device decide)
 */
-void hci_set_master_slave_policy(uint8_t policy);
+void hci_set_master_slave_policy(btstack_state_t *btstack, uint8_t policy);
 
 /* API_END */
 
@@ -1103,114 +1104,114 @@ void hci_set_master_slave_policy(uint8_t policy);
 /**
  * va_list version of hci_send_cmd, call hci_send_cmd_packet
  */
-int hci_send_cmd_va_arg(const hci_cmd_t *cmd, va_list argtr);
+int hci_send_cmd_va_arg(btstack_state_t *btstack, const hci_cmd_t *cmd, va_list argtr);
 
 /**
  * Get connection iterator. Only used by l2cap.c and sm.c
  */
-void hci_connections_get_iterator(btstack_linked_list_iterator_t *it);
+void hci_connections_get_iterator(btstack_state_t *btstack, btstack_linked_list_iterator_t *it);
 
 /**
  * Get internal hci_connection_t for given handle. Used by L2CAP, SM, daemon
  */
-hci_connection_t * hci_connection_for_handle(hci_con_handle_t con_handle);
+hci_connection_t * hci_connection_for_handle(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * Get internal hci_connection_t for given Bluetooth addres. Called by L2CAP
  */
-hci_connection_t * hci_connection_for_bd_addr_and_type(bd_addr_t addr, bd_addr_type_t addr_type);
+hci_connection_t * hci_connection_for_bd_addr_and_type(btstack_state_t *btstack, bd_addr_t addr, bd_addr_type_t addr_type);
 
 /**
  * Check if outgoing packet buffer is reserved. Used for internal checks in l2cap.c
  */
-int hci_is_packet_buffer_reserved(void);
+int hci_is_packet_buffer_reserved(btstack_state_t *btstack);
 
 /**
  * Check hci packet buffer is free and a classic acl packet can be sent to controller
  */
-int hci_can_send_acl_classic_packet_now(void);
+int hci_can_send_acl_classic_packet_now(btstack_state_t *btstack);
 
 /**
  * Check hci packet buffer is free and an LE acl packet can be sent to controller
  */
-int hci_can_send_acl_le_packet_now(void);
+int hci_can_send_acl_le_packet_now(btstack_state_t *btstack);
 
 /**
  * Check hci packet buffer is free and an acl packet for the given handle can be sent to controller
  */
-int hci_can_send_acl_packet_now(hci_con_handle_t con_handle);
+int hci_can_send_acl_packet_now(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * Check if acl packet for the given handle can be sent to controller
  */
-int hci_can_send_prepared_acl_packet_now(hci_con_handle_t con_handle);
+int hci_can_send_prepared_acl_packet_now(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * Send acl packet prepared in hci packet buffer
  */
-int hci_send_acl_packet_buffer(int size);
+int hci_send_acl_packet_buffer(btstack_state_t *btstack, int size);
 
 /**
  * Check if authentication is active. It delays automatic disconnect while no L2CAP connection
  * Called by l2cap.
  */
-int hci_authentication_active_for_handle(hci_con_handle_t handle);
+int hci_authentication_active_for_handle(btstack_state_t *btstack, hci_con_handle_t handle);
 
 /**
  * Get maximal ACL Classic data packet length based on used buffer size. Called by L2CAP
  */
-uint16_t hci_max_acl_data_packet_length(void);
+uint16_t hci_max_acl_data_packet_length(btstack_state_t *btstack);
 
 /**
  * Get supported packet types. Called by L2CAP
  */
-uint16_t hci_usable_acl_packet_types(void);
+uint16_t hci_usable_acl_packet_types(btstack_state_t *btstack);
 
 /**
  * Check if ACL packets marked as non flushable can be sent. Called by L2CAP
  */
-int hci_non_flushable_packet_boundary_flag_supported(void);
+int hci_non_flushable_packet_boundary_flag_supported(btstack_state_t *btstack);
 
 /**
  * Check if extended SCO Link is supported
  */
-int hci_extended_sco_link_supported(void);
+int hci_extended_sco_link_supported(btstack_state_t *btstack);
 
 /**
  * Check if SSP is supported on both sides. Called by L2CAP
  */
-int gap_ssp_supported_on_both_sides(hci_con_handle_t handle);
+int gap_ssp_supported_on_both_sides(btstack_state_t *btstack, hci_con_handle_t handle);
 
 /**
  * Disconn because of security block. Called by L2CAP
  */
-void hci_disconnect_security_block(hci_con_handle_t con_handle);
+void hci_disconnect_security_block(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * Query if remote side supports eSCO
  */
-int hci_remote_esco_supported(hci_con_handle_t con_handle);
+int hci_remote_esco_supported(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * Emit current HCI state. Called by daemon
  */
-void hci_emit_state(void);
+void hci_emit_state(btstack_state_t *btstack);
 
-/** 
+/**
  * Send complete CMD packet. Called by daemon and hci_send_cmd_va_arg
  * @returns 0 if command was successfully sent to HCI Transport layer
  */
-int hci_send_cmd_packet(uint8_t *packet, int size);
+int hci_send_cmd_packet(btstack_state_t *btstack, uint8_t *packet, int size);
 
 /**
  * Disconnect all HCI connections. Called by daemon
  */
-void hci_disconnect_all(void);
+void hci_disconnect_all(btstack_state_t *btstack);
 
 /**
  * Get number of free acl slots for packets of given handle. Called by daemon
  */
-int hci_number_free_acl_slots_for_handle(hci_con_handle_t con_handle);
+int hci_number_free_acl_slots_for_handle(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * @brief Set Advertisement Parameters
@@ -1224,11 +1225,11 @@ int hci_number_free_acl_slots_for_handle(hci_con_handle_t con_handle);
  *
  * @note internal use. use gap_advertisements_set_params from gap.h instead.
  */
-void hci_le_advertisements_set_params(uint16_t adv_int_min, uint16_t adv_int_max, uint8_t adv_type, 
+void hci_le_advertisements_set_params(uint16_t adv_int_min, uint16_t adv_int_max, uint8_t adv_type,
     uint8_t direct_address_typ, bd_addr_t direct_address, uint8_t channel_map, uint8_t filter_policy);
 
-/** 
- * 
+/**
+ *
  * @note internal use. use gap_random_address_set_mode from gap.h instead.
  */
 void hci_le_set_own_address_type(uint8_t own_address_type);
@@ -1237,29 +1238,29 @@ void hci_le_set_own_address_type(uint8_t own_address_type);
  * @brief Get Manufactured
  * @return manufacturer id
  */
-uint16_t hci_get_manufacturer(void);
+uint16_t hci_get_manufacturer(btstack_state_t *btstack);
 
 /**
  * Defer halt. Used by btstack_crypto to allow current HCI operation to complete
  */
-void hci_halting_defer(void);
+void hci_halting_defer(btstack_state_t *btstack);
 
 // Only for PTS testing
 
-/** 
+/**
  * Disable automatic L2CAP disconnect if no L2CAP connection is established
  */
-void hci_disable_l2cap_timeout_check(void);
+void hci_disable_l2cap_timeout_check(btstack_state_t *btstack);
 
 /**
  *  Get Classic Allow Role Switch param
  */
-uint8_t hci_get_allow_role_switch(void);
+uint8_t hci_get_allow_role_switch(btstack_state_t *btstack);
 
 /**
  * Get state
  */
-HCI_STATE hci_get_state(void);
+HCI_STATE hci_get_state(btstack_state_t *btstack);
 
 // setup test connections, used for fuzzing
 void hci_setup_test_connections_fuzz(void);

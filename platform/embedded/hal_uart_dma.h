@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -51,6 +51,7 @@
 #define HAL_UART_DMA_H
 
 #include <stdint.h>
+#include "btstack_state.h"
 
 #if defined __cplusplus
 extern "C" {
@@ -65,20 +66,20 @@ void hal_uart_dma_init(void);
  * @brief Set callback for block received - can be called from ISR context
  * @param callback
  */
-void hal_uart_dma_set_block_received( void (*callback)(void));
+void hal_uart_dma_set_block_received( void (*callback)(btstack_state_t *btstack));
 
 /**
  * @brief Set callback for block sent - can be called from ISR context
  * @param callback
  */
-void hal_uart_dma_set_block_sent( void (*callback)(void));
+void hal_uart_dma_set_block_sent( void (*callback)(btstack_state_t *btstack));
 
 /**
  * @brief Set baud rate
  * @note During baud change, TX line should stay high and no data should be received on RX accidentally
  * @param baudrate
  */
-int  hal_uart_dma_set_baud(uint32_t baud);
+int  hal_uart_dma_set_baud(btstack_state_t *btstack, uint32_t baud);
 
 #ifdef HAVE_UART_DMA_SET_FLOWCONTROL
 /**
@@ -93,20 +94,20 @@ int  hal_uart_dma_set_flowcontrol(int flowcontrol);
  * @param buffer
  * @param lengh
  */
-void hal_uart_dma_send_block(const uint8_t *buffer, uint16_t length);
+void hal_uart_dma_send_block(btstack_state_t *btstack, const uint8_t *buffer, uint16_t length);
 
 /**
  * @brief Receive block. When done, callback set by hal_uart_dma_set_block_received must be called
  * @param buffer
  * @param lengh
  */
-void hal_uart_dma_receive_block(uint8_t *buffer, uint16_t len);
+void hal_uart_dma_receive_block(btstack_state_t *btstack, uint8_t *buffer, uint16_t len);
 
 /**
  * @brief Set or clear callback for CSR pulse - can be called from ISR context
  * @param csr_irq_handler or NULL to disable IRQ handler
  */
-void hal_uart_dma_set_csr_irq_handler( void (*csr_irq_handler)(void));
+void hal_uart_dma_set_csr_irq_handler( void (*csr_irq_handler)(btstack_state_t *btstack));
 
 /**
  * @brief Set sleep mode

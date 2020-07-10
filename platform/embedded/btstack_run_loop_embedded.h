@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -55,9 +55,9 @@
 #if defined __cplusplus
 extern "C" {
 #endif
-	
+
 /**
- * Provide btstack_run_loop_embedded instance 
+ * Provide btstack_run_loop_embedded instance
  */
 const btstack_run_loop_t * btstack_run_loop_embedded_get_instance(void);
 
@@ -76,11 +76,11 @@ uint32_t btstack_run_loop_embedded_get_ticks(void);
 /**
  * @brief Sets an internal flag that is checked in the critical section just before entering sleep mode. Has to be called by the interrupt handler of a data source to signal the run loop that a new data is available.
  */
-void btstack_run_loop_embedded_trigger(void);    
+void btstack_run_loop_embedded_trigger(btstack_state_t *btstack);
 /**
  * @brief Execute run_loop once. It can be used to integrate BTstack's timer and data source processing into a foreign run loop (it is not recommended).
  */
-void btstack_run_loop_embedded_execute_once(void);
+void btstack_run_loop_embedded_execute_once(btstack_state_t *btstack);
 
 /* API_END */
 
