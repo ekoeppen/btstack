@@ -102,7 +102,7 @@ all : btstack.ntkc
 
 # NTKC rules
 
-LDFLAGS   := -EB -shared --gc-sections --no-allow-shlib-undefined --no-export-dynamic -x --no-undefined -Tbtstack.ld --version-script=btstack.map
+LDFLAGS   := -EB -shared --gc-sections --no-allow-shlib-undefined --no-export-dynamic -x --no-undefined -Tbtstack.ld --version-script=btstack.ver
 
 btstack.ntkc : btstack.elf btstack.exp
 	rm -f $@

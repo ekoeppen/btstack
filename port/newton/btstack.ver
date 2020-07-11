@@ -1,0 +1,7 @@
+btstack_1.0 {
+  global:
+    MStart;
+
+  local:
+    *;
+};
