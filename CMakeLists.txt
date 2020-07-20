@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 project(blunt2k)
 set(CMAKE_EXECUTABLE_SUFFIX ".elf")
 enable_language(ASM)
-set(BTSTACK "${PROJECT_SOURCE_DIR}/../../src")
-set(PORT "${PROJECT_SOURCE_DIR}/../../port/newton")
-set(PLAT_NEWTON "${PROJECT_SOURCE_DIR}/../../platform/newton")
+set(BTSTACK "${PROJECT_SOURCE_DIR}/src")
+set(PORT "${PROJECT_SOURCE_DIR}/port/newton")
+set(PLAT_NEWTON "${PROJECT_SOURCE_DIR}/platform/newton")
 set(NCT_PROJECTS $ENV{NCT_PROJECTS})
-add_subdirectory(${PLAT_NEWTON} "${CMAKE_BINARY_DIR}/btstack_newton")
+add_subdirectory(${PLAT_NEWTON})
 add_executable(blunt2k
     ${PORT}/btstack.cpp
     ${PORT}/log.c
