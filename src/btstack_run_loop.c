@@ -172,7 +172,6 @@ void btstack_run_loop_execute(btstack_state_t *btstack){
 // init must be called before any other run_loop call
 void btstack_run_loop_init(btstack_state_t * btstack, const btstack_run_loop_t * run_loop){
     btstack_run_loop_state_ptr data = malloc(sizeof(struct btstack_run_loop_state));
-    LH(__func__, __LINE__, 0);
     memset(data, 0, sizeof(struct btstack_run_loop_state));
     data->run_loop = run_loop;
     btstack->run_loop = data;

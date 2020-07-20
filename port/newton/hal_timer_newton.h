@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 BlueKitchen GmbH
+ * Copyright (C) 2020 Eckhart Koeppen
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,25 +30,9 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at
- * contact@bluekitchen-gmbh.com
- *
  */
 
-/*
- *  hal_uart_newton.h
- *
- *  Hardware abstraction layer that provides
- *  - block wise IRQ-driven read/write
- *  - baud control
- *  - wake-up on CTS pulse (BTSTACK_UART_SLEEP_RTS_HIGH_WAKE_ON_CTS_PULSE)
- *
- * If HAVE_HAL_UART_DMA_SLEEP_MODES is defined, different sleeps modes can be provided and used
- *
- */
-
-#ifndef HAL_UART_DMA_H
-#define HAL_UART_DMA_H
+#pragma once
 
 #include <stdint.h>
 #include "btstack_state.h"
@@ -57,41 +41,9 @@
 extern "C" {
 #endif
 
-/**
- * @brief Init and open device
- */
-void *hal_uart_newton_init(btstack_state_t *btstack);
-
-/**
- * @brief Set baud rate
- * @note During baud change, TX line should stay high and no data should be received on RX accidentally
- * @param baudrate
- */
-int  hal_uart_newton_set_baud(btstack_state_t *btstack, uint32_t baud);
-
-#ifdef HAVE_UART_DMA_SET_FLOWCONTROL
-/**
- * @brief Set flowcontrol
- * @param flowcontrol enabled
- */
-int  hal_uart_newton_set_flowcontrol(int flowcontrol);
-#endif
-
-/**
- * @brief Send block. When done, callback set by hal_uart_set_block_sent must be called
- * @param buffer
- * @param lengh
- */
-void hal_uart_newton_send_block(btstack_state_t *btstack, const uint8_t *buffer, uint16_t length);
-
-/**
- * @brief Receive block. When done, callback set by hal_uart_newton_set_block_received must be called
- * @param buffer
- * @param lengh
- */
-void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *buffer, uint16_t len);
+unsigned int hal_time_ms();
+void hal_timer_newton_set_timer(btstack_state_t *btstack, uint32_t milliseconds);
 
 #if defined __cplusplus
 }
 #endif
-#endif // HAL_UART_DMA_H

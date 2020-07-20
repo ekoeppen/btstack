@@ -30,7 +30,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at 
+ * Please inquire about commercial licensing options at
  * contact@bluekitchen-gmbh.com
  *
  */
@@ -55,7 +55,7 @@ extern "C" {
 #endif
 
 /**
- *  Hardware state of Bluetooth controller 
+ *  Hardware state of Bluetooth controller
  */
 typedef enum {
     HCI_POWER_OFF = 0,
@@ -64,7 +64,7 @@ typedef enum {
 } HCI_POWER_MODE;
 
 /**
- * State of BTstack 
+ * State of BTstack
  */
 typedef enum {
     HCI_STATE_OFF = 0,
@@ -75,7 +75,7 @@ typedef enum {
     HCI_STATE_FALLING_ASLEEP
 } HCI_STATE;
 
-/** 
+/**
  * compact HCI Command packet description
  */
  typedef struct {
@@ -242,7 +242,7 @@ extern const hci_cmd_t hci_ti_drpb_tester_packet_tx_rx;
  */
  uint16_t hci_cmd_create_from_template(uint8_t *hci_cmd_buffer, const hci_cmd_t *cmd, va_list argptr);
 
-    
+
 #if defined __cplusplus
 }
 #endif

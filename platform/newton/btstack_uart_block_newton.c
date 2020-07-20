@@ -35,7 +35,7 @@
  *
  */
 
-#define BTSTACK_FILE__ "btstack_uart_block_embedded.c"
+#define BTSTACK_FILE__ "btstack_uart_block_newton.c"
 
 /*
  *  btstack_uart_block_embedded.c
@@ -49,7 +49,7 @@
 #include "btstack_debug.h"
 #include "btstack_uart_block.h"
 #include "btstack_uart_block_newton.h"
-#include "btstack_run_loop_embedded.h"
+#include "btstack_run_loop_newton.h"
 #include "hal_uart_newton.h"
 #include "log.h"
 
@@ -144,24 +144,6 @@ static void btstack_uart_embedded_send_block(btstack_state_t *btstack, const uin
 
 static void btstack_uart_embedded_receive_block(btstack_state_t *btstack, uint8_t *buffer, uint16_t len){
     hal_uart_newton_receive_block(btstack, buffer, len);
-}
-
-static int btstack_uart_embedded_get_supported_sleep_modes(void){
-#ifdef HAVE_HAL_UART_DMA_SLEEP_MODES
-	return hal_uart_newton_get_supported_sleep_modes();
-#else
-	return BTSTACK_UART_SLEEP_MASK_RTS_HIGH_WAKE_ON_CTS_PULSE;
-#endif
-}
-
-static void btstack_uart_embedded_set_sleep(btstack_uart_sleep_mode_t sleep_mode){
-	log_info("set sleep %u", sleep_mode);
-#ifdef HAVE_HAL_UART_DMA_SLEEP_MODES
-	hal_uart_newton_set_sleep_mode(sleep_mode);
-#else
-	hal_uart_newton_set_sleep(sleep_mode != BTSTACK_UART_SLEEP_OFF);
-#endif
-	log_info("done");
 }
 
 static const btstack_uart_block_t btstack_uart_embedded = {

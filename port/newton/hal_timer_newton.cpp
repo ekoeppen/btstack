@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 BlueKitchen GmbH
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,38 +35,43 @@
  *
  */
 
-#pragma once
+/*
+ *  hal_uart_newton.h
+ *
+ *  Hardware abstraction layer that provides
+ *  - block wise IRQ-driven read/write
+ *  - baud control
+ *  - wake-up on CTS pulse (BTSTACK_UART_SLEEP_RTS_HIGH_WAKE_ON_CTS_PULSE)
+ *
+ * If HAVE_HAL_TIMER_NEWTON_SLEEP_MODES is defined, different sleeps modes can be provided and used
+ *
+ */
 
-#include <stdlib.h>
-#include <string.h>
-#include "btstack_uart_block.h"
-#include "btstack_run_loop_newton.h"
+#include <stdint.h>
+#include <UserTasks.h>
+#include "btstack_state.h"
+#include "hal_newton.h"
+#include "hal_timer_newton.h"
+#include "log.h"
 
-#ifdef __cplusplus
+#if defined __cplusplus
 extern "C" {
 #endif
 
-struct btstack_uart_state {
-    // uart config
-    const btstack_uart_config_t * uart_config;
+unsigned int hal_time_ms()
+{
+    return GetGlobalTime().ConvertTo(kMilliseconds);
+}
 
-    // data source for integration with BTstack Runloop
-    btstack_data_source_t transport_data_source;
+void hal_timer_newton_set_timer(btstack_state_t *btstack, uint32_t milliseconds)
+{
+    TUPort serverPort(btstack->hal->server_port);
+    TUAsyncMessage *message = new TUAsyncMessage();
+    message->Init(false);
+    TTime futureTime = GetGlobalTime() + TTime(milliseconds, kMilliseconds);
+    serverPort.Send (message, NULL, 0, kNoTimeout, &futureTime, M_TIMER);
+}
 
-    int send_complete;
-    int receive_complete;
-    int wakeup_event;
-
-    // callbacks
-    void (*block_sent)(btstack_state_t *btstack);
-    void (*block_received)(btstack_state_t *btstack);
-    void (*wakeup_handler)(btstack_state_t *btstack);
-
-    void *serial_chip;
-};
-
-extern const btstack_uart_block_t * btstack_uart_block_newton_instance(void);
-
-#ifdef __cplusplus
+#if defined __cplusplus
 }
 #endif

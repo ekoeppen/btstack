@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 BlueKitchen GmbH
+ * Copyright (C) 2020 Eckhart Koeppen
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,43 +30,51 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Please inquire about commercial licensing options at
- * contact@bluekitchen-gmbh.com
- *
  */
 
 #pragma once
 
-#include <stdlib.h>
-#include <string.h>
-#include "btstack_uart_block.h"
-#include "btstack_run_loop_newton.h"
+#include <stdint.h>
+#include "btstack_state.h"
 
-#ifdef __cplusplus
+#if defined __cplusplus
 extern "C" {
 #endif
 
-struct btstack_uart_state {
-    // uart config
-    const btstack_uart_config_t * uart_config;
+/**
+ * @brief Init and open device
+ */
+void *hal_uart_newton_init(btstack_state_t *btstack);
 
-    // data source for integration with BTstack Runloop
-    btstack_data_source_t transport_data_source;
+/**
+ * @brief Set baud rate
+ * @note During baud change, TX line should stay high and no data should be received on RX accidentally
+ * @param baudrate
+ */
+int  hal_uart_newton_set_baud(btstack_state_t *btstack, uint32_t baud);
 
-    int send_complete;
-    int receive_complete;
-    int wakeup_event;
+#ifdef HAVE_UART_DMA_SET_FLOWCONTROL
+/**
+ * @brief Set flowcontrol
+ * @param flowcontrol enabled
+ */
+int  hal_uart_newton_set_flowcontrol(int flowcontrol);
+#endif
 
-    // callbacks
-    void (*block_sent)(btstack_state_t *btstack);
-    void (*block_received)(btstack_state_t *btstack);
-    void (*wakeup_handler)(btstack_state_t *btstack);
+/**
+ * @brief Send block. When done, callback set by hal_uart_set_block_sent must be called
+ * @param buffer
+ * @param lengh
+ */
+void hal_uart_newton_send_block(btstack_state_t *btstack, const uint8_t *buffer, uint16_t length);
 
-    void *serial_chip;
-};
+/**
+ * @brief Receive block. When done, callback set by hal_uart_newton_set_block_received must be called
+ * @param buffer
+ * @param lengh
+ */
+void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *buffer, uint16_t len);
 
-extern const btstack_uart_block_t * btstack_uart_block_newton_instance(void);
-
-#ifdef __cplusplus
+#if defined __cplusplus
 }
 #endif

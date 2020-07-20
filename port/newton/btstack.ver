@@ -1,6 +1,8 @@
 btstack_1.0 {
   global:
+    MCreate;
     MStart;
+    MStop;
 
   local:
     *;

@@ -1,5 +1,5 @@
 //
-// btstack_config.h for msp-exp430f5438-cc2564b port
+// btstack_config.h for Newton port
 //
 
 #ifndef __BTSTACK_CONFIG

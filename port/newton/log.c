@@ -38,3 +38,10 @@ void LH(const char *func, int line, int v)
     sprintf(buffer, "%s %d %d", func, line, v);
     nwt_log(buffer);
 }
+
+void LHC(int color, const char *func, int line, int v)
+{
+    char buffer[80];
+    sprintf(buffer, "\x1b[%dm%s %d %d\x1b[0m", color, func, line, v);
+    nwt_log(buffer);
+}

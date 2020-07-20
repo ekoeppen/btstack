@@ -378,10 +378,12 @@ void hci_dump_log_va_arg(int log_level, const char * format, va_list argptr){
         return;
     }
 #endif
+#if 0
     printf_timestamp();
     printf("LOG -- ");
     vprintf(format, argptr);
     printf("\n");
+#endif
 }
 
 void hci_dump_log(int log_level, const char * format, ...){

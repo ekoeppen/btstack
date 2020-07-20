@@ -35,7 +35,7 @@
  *
  */
 
-#define BTSTACK_FILE__ "btstack_run_loop_embedded.c"
+#define BTSTACK_FILE__ "btstack_run_loop_newton.c"
 
 /*
  *  btstack_run_loop_embedded.c
@@ -56,32 +56,16 @@
 
 
 #include "btstack_run_loop.h"
-#include "btstack_run_loop_embedded.h"
+#include "btstack_run_loop_newton.h"
 #include "btstack_linked_list.h"
 #include "btstack_util.h"
-#include "hal_tick.h"
-#include "hal_cpu.h"
 
 #include "btstack_debug.h"
 #include "log.h"
 
 #include <stddef.h> // NULL
 
-#ifdef HAVE_EMBEDDED_TIME_MS
-#include "hal_time_ms.h"
-#endif
-
-#if defined(HAVE_EMBEDDED_TICK) && defined(HAVE_EMBEDDED_TIME_MS)
-#error "Please specify either HAVE_EMBEDDED_TICK or HAVE_EMBEDDED_TIME_MS"
-#endif
-
-#if defined(HAVE_EMBEDDED_TICK) || defined(HAVE_EMBEDDED_TIME_MS)
-#define TIMER_SUPPORT
-#endif
-
-#ifdef HAVE_EMBEDDED_TICK
-static volatile uint32_t system_ticks;
-#endif
+#include "hal_timer_newton.h"
 
 /**
  * Add data_source to run_loop
@@ -99,22 +83,13 @@ static bool btstack_run_loop_embedded_remove_data_source(btstack_state_t *btstac
 
 // set timer
 static void btstack_run_loop_embedded_set_timer(btstack_state_t *btstack, btstack_timer_source_t *ts, uint32_t timeout_in_ms){
-#ifdef HAVE_EMBEDDED_TICK
-    uint32_t ticks = btstack_run_loop_embedded_ticks_for_ms(timeout_in_ms);
-    if (ticks == 0) ticks++;
-    // time until next tick is < hal_tick_get_tick_period_in_ms() and we don't know, so we add one
-    ts->timeout = system_ticks + 1 + ticks;
-#endif
-#ifdef HAVE_EMBEDDED_TIME_MS
-    ts->timeout = hal_time_ms() + timeout_in_ms + 1;
-#endif
+    ts->timeout = timeout_in_ms + 1;
 }
 
 /**
  * Add timer to run_loop (keep list sorted)
  */
 static void btstack_run_loop_embedded_add_timer(btstack_state_t *btstack, btstack_timer_source_t *ts){
-#ifdef TIMER_SUPPORT
     btstack_linked_item_t *it;
     for (it = (btstack_linked_item_t *) &btstack->run_loop->timers; it->next ; it = it->next){
         // don't add timer that's already in there
@@ -131,23 +106,18 @@ static void btstack_run_loop_embedded_add_timer(btstack_state_t *btstack, btstac
     ts->item.next = it->next;
     ts->context = btstack;
     it->next = (btstack_linked_item_t *) ts;
+    hal_timer_newton_set_timer(btstack, ts->timeout);
     LOG(34, __func__, __LINE__, "%d", ts->timeout);
-#endif
 }
 
 /**
  * Remove timer from run loop
  */
 static bool btstack_run_loop_embedded_remove_timer(btstack_state_t *btstack, btstack_timer_source_t *ts){
-#ifdef TIMER_SUPPORT
     return btstack_linked_list_remove(&btstack->run_loop->timers, (btstack_linked_item_t *) ts);
-#else
-    return 0;
-#endif
 }
 
 static void btstack_run_loop_embedded_dump_timer(btstack_state_t *btstack){
-#ifdef TIMER_SUPPORT
 #ifdef ENABLE_LOG_INFO
     btstack_linked_item_t *it;
     int i = 0;
@@ -155,7 +125,6 @@ static void btstack_run_loop_embedded_dump_timer(btstack_state_t *btstack){
         btstack_timer_source_t *ts = (btstack_timer_source_t*) it;
         log_info("timer %u, timeout %u\n", i, (unsigned int) ts->timeout);
     }
-#endif
 #endif
 }
 
@@ -182,14 +151,7 @@ void btstack_run_loop_embedded_execute_once(btstack_state_t *btstack) {
         }
     }
 
-#ifdef TIMER_SUPPORT
-
-#ifdef HAVE_EMBEDDED_TICK
-    uint32_t now = system_ticks;
-#endif
-#ifdef HAVE_EMBEDDED_TIME_MS
     uint32_t now = hal_time_ms();
-#endif
 
     // process timers
     while (btstack->run_loop->timers) {
@@ -199,16 +161,6 @@ void btstack_run_loop_embedded_execute_once(btstack_state_t *btstack) {
 
         btstack_run_loop_embedded_remove_timer(btstack, ts);
         ts->process(btstack, ts);
-    }
-#endif
-
-    // disable IRQs and check if run loop iteration has been requested. if not, go to sleep
-    hal_cpu_disable_irqs();
-    if (btstack->run_loop->trigger_event_received){
-        btstack->run_loop->trigger_event_received = 0;
-        hal_cpu_enable_irqs();
-    } else {
-        hal_cpu_enable_irqs_and_sleep();
     }
 }
 
@@ -221,29 +173,8 @@ static void btstack_run_loop_embedded_execute(btstack_state_t *btstack) {
     }
 }
 
-#ifdef HAVE_EMBEDDED_TICK
-static void btstack_run_loop_embedded_tick_handler(btstack_state_t *btstack){
-    system_ticks++;
-    btstack->run_loop->trigger_event_received = 1;
-}
-
-uint32_t btstack_run_loop_embedded_get_ticks(void){
-    return system_ticks;
-}
-
-uint32_t btstack_run_loop_embedded_ticks_for_ms(uint32_t time_in_ms){
-    return time_in_ms / hal_tick_get_tick_period_in_ms();
-}
-#endif
-
 static uint32_t btstack_run_loop_embedded_get_time_ms(btstack_state_t *btstack){
-#if   defined(HAVE_EMBEDDED_TIME_MS)
     return hal_time_ms();
-#elif defined(HAVE_EMBEDDED_TICK)
-    return system_ticks * hal_tick_get_tick_period_in_ms();
-#else
-    return 0;
-#endif
 }
 
 
@@ -256,16 +187,7 @@ void btstack_run_loop_embedded_trigger(btstack_state_t *btstack){
 
 static void btstack_run_loop_embedded_init(btstack_state_t *btstack){
     btstack->run_loop->data_sources = NULL;
-
-#ifdef TIMER_SUPPORT
     btstack->run_loop->timers = NULL;
-#endif
-
-#ifdef HAVE_EMBEDDED_TICK
-    system_ticks = 0;
-    hal_tick_init();
-    hal_tick_set_handler(&btstack_run_loop_embedded_tick_handler);
-#endif
 }
 
 /**

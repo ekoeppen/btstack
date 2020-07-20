@@ -50,6 +50,7 @@ typedef struct btstack_hci_h4_state * btstack_hci_h4_state_ptr;
 typedef struct btstack_l2cap_state * btstack_l2cap_state_ptr;
 typedef struct btstack_sdp_state * btstack_sdp_state_ptr;
 typedef struct btstack_uart_state * btstack_uart_state_ptr;
+typedef struct btstack_hal_state * btstack_hal_state_ptr;
 
 typedef struct {
     btstack_run_loop_state_ptr run_loop;
@@ -58,6 +59,7 @@ typedef struct {
     btstack_l2cap_state_ptr l2cpi;
     btstack_sdp_state_ptr sdp;
     btstack_uart_state_ptr uart;
+    btstack_hal_state_ptr hal;
 } btstack_state_t;
 
 

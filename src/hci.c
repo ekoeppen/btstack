@@ -97,7 +97,7 @@
 #define HCI_CONNECTION_TIMEOUT_MS 10000
 
 #ifndef HCI_RESET_RESEND_TIMEOUT_MS
-#define HCI_RESET_RESEND_TIMEOUT_MS 200
+#define HCI_RESET_RESEND_TIMEOUT_MS 2000
 #endif
 
 // Names are arbitrarily shortened to 32 bytes if not requested otherwise
@@ -1537,6 +1537,7 @@ static void hci_initializing_run(btstack_state_t *btstack){
 
 static void hci_init_done(btstack_state_t *btstack){
     // done. tell the app
+    LHC(31, __func__, __LINE__, 0);
     log_info("hci_init_done -> HCI_STATE_WORKING");
     btstack->hci->state = HCI_STATE_WORKING;
     hci_emit_state(btstack);
@@ -1547,6 +1548,8 @@ static bool hci_initializing_event_handler_command_completed(btstack_state_t *bt
     bool command_completed = false;
     if (hci_event_packet_get_type(packet) == HCI_EVENT_COMMAND_COMPLETE){
         uint16_t opcode = little_endian_read_16(packet,3);
+        LHC(31, __func__, __LINE__, opcode);
+        LHC(31, __func__, __LINE__, btstack->hci->last_cmd_opcode);
         if (opcode == btstack->hci->last_cmd_opcode){
             command_completed = true;
             log_debug("Command complete for expected opcode %04x at substate %u", opcode, btstack->hci->substate);
@@ -1592,6 +1595,7 @@ static void hci_initializing_event_handler(btstack_state_t *btstack, const uint8
 
     UNUSED(size);   // ok: less than 6 bytes are read from our buffer
 
+    LH(__func__, __LINE__, btstack->hci->substate);
     bool command_completed =  hci_initializing_event_handler_command_completed(btstack, packet);
 
 #if !defined(HAVE_PLATFORM_IPHONE_OS) && !defined (HAVE_HOST_CONTROLLER_API)
@@ -1899,6 +1903,7 @@ static void hci_handle_connection_failed(btstack_state_t *btstack, hci_connectio
 }
 
 static void handle_event_for_current_stack_state(btstack_state_t *btstack, const uint8_t * packet, uint16_t size) {
+    LH(__func__, __LINE__, btstack->hci->substate);
     // handle BT initialization
     if (btstack->hci->state == HCI_STATE_INITIALIZING) {
         hci_initializing_event_handler(btstack, packet, size);
@@ -1912,7 +1917,7 @@ static void handle_event_for_current_stack_state(btstack_state_t *btstack, const
     }
 }
 
-static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
+void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
 
     uint16_t event_length = packet[1];
 
@@ -1940,14 +1945,20 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
         case HCI_EVENT_COMMAND_COMPLETE:
             // get num cmd packets - limit to 1 to reduce complexity
             btstack->hci->num_cmd_packets = packet[2] ? 1 : 0;
+            LH(__func__, __LINE__, btstack->hci->num_cmd_packets);
 
             if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_local_name)){
+            }
+            LH(__func__, __LINE__, 0);
+            if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_local_name)){
+                LH(__func__, __LINE__, 0);
                 if (packet[5]) break;
                 // terminate, name 248 chars
                 packet[6+248] = 0;
                 log_info("local name: %s", &packet[6]);
             }
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_buffer_size)){
+                LH(__func__, __LINE__, 0);
                 // "The HC_ACL_Data_Packet_Length return parameter will be used to determine the size of the L2CAP segments contained in ACL Data Packets"
                 if (btstack->hci->state == HCI_STATE_INITIALIZING){
                     uint16_t acl_len = little_endian_read_16(packet, 6);
@@ -1966,6 +1977,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
                 }
             }
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_rssi)){
+                LH(__func__, __LINE__, 0);
                 if (packet[5] == 0){
                     uint8_t event[5];
                     event[0] = GAP_EVENT_RSSI_MEASUREMENT;
@@ -1976,6 +1988,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
             }
 #ifdef ENABLE_BLE
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_le_read_buffer_size)){
+                LH(__func__, __LINE__, 0);
                 btstack->hci->le_data_packets_length = little_endian_read_16(packet, 6);
                 btstack->hci->le_acl_packets_total_num  = packet[8];
                 // determine usable ACL payload size
@@ -1987,6 +2000,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
 #endif
 #ifdef ENABLE_LE_DATA_LENGTH_EXTENSION
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_le_read_maximum_data_length)){
+                LH(__func__, __LINE__, 0);
                 btstack->hci->le_supported_max_tx_octets = little_endian_read_16(packet, 6);
                 btstack->hci->le_supported_max_tx_time = little_endian_read_16(packet, 8);
                 log_info("hci_le_read_maximum_data_length: tx octets %u, tx time %u us", btstack->hci->le_supported_max_tx_octets, btstack->hci->le_supported_max_tx_time);
@@ -1994,11 +2008,13 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
 #endif
 #ifdef ENABLE_LE_CENTRAL
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_le_read_white_list_size)){
+                LH(__func__, __LINE__, 0);
                 btstack->hci->le_whitelist_capacity = packet[6];
                 log_info("hci_le_read_white_list_size: size %u", btstack->hci->le_whitelist_capacity);
             }
 #endif
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_bd_addr)) {
+                LH(__func__, __LINE__, 0);
                 reverse_bd_addr(&packet[OFFSET_OF_DATA_IN_COMMAND_COMPLETE + 1],
 				btstack->hci->local_bd_addr);
                 log_info("Local Address, Status: 0x%02x: Addr: %s",
@@ -2011,9 +2027,11 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
             }
 #ifdef ENABLE_CLASSIC
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_write_scan_enable)){
+                LH(__func__, __LINE__, 0);
                 hci_emit_discoverable_enabled(btstack, btstack->hci->discoverable);
             }
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_inquiry_cancel)){
+                LH(__func__, __LINE__, 0);
                 if (btstack->hci->inquiry_state == GAP_INQUIRY_STATE_W4_CANCELLED){
                     btstack->hci->inquiry_state = GAP_INQUIRY_STATE_IDLE;
                     uint8_t event[] = { GAP_EVENT_INQUIRY_COMPLETE, 1, 0};
@@ -2024,6 +2042,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
 
             // Note: HCI init checks
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_local_supported_features)){
+                LH(__func__, __LINE__, 0);
                 (void)memcpy(btstack->hci->local_supported_features,
 			     &packet[OFFSET_OF_DATA_IN_COMMAND_COMPLETE + 1],
 			     8);
@@ -2037,6 +2056,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
                 log_info("BR/EDR support %u, LE support %u", hci_classic_supported(btstack), hci_le_supported());
             }
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_local_version_information)){
+                LH(__func__, __LINE__, 0);
                 // btstack->hci->hci_version    = little_endian_read_16(packet, 4);
                 // btstack->hci->hci_revision   = little_endian_read_16(packet, 6);
                 uint16_t manufacturer = little_endian_read_16(packet, 10);
@@ -2052,6 +2072,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
                 log_info("Manufacturer: 0x%04x", btstack->hci->manufacturer);
             }
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_local_supported_commands)){
+                LH(__func__, __LINE__, 0);
                 btstack->hci->local_supported_commands[0] =
                     ((packet[OFFSET_OF_DATA_IN_COMMAND_COMPLETE+1+14] & 0x80) >> 7) |  // bit 0 = Octet 14, bit 7 / Read Buffer Size
                     ((packet[OFFSET_OF_DATA_IN_COMMAND_COMPLETE+1+24] & 0x40) >> 5) |  // bit 1 = Octet 24, bit 6 / Write Le Host Supported
@@ -2068,11 +2089,13 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
             }
 #ifdef ENABLE_CLASSIC
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_write_synchronous_flow_control_enable)){
+                LH(__func__, __LINE__, 0);
                 if (packet[5] == 0){
                     btstack->hci->synchronous_flow_control_enabled = 1;
                 }
             }
             else if (HCI_EVENT_IS_COMMAND_COMPLETE(packet, hci_read_encryption_key_size)){
+                LH(__func__, __LINE__, 0);
                 uint8_t status = packet[OFFSET_OF_DATA_IN_COMMAND_COMPLETE];
                 handle = little_endian_read_16(packet, OFFSET_OF_DATA_IN_COMMAND_COMPLETE+1);
                 conn   = hci_connection_for_handle(btstack, handle);
@@ -2089,6 +2112,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
                 hci_emit_security_level(btstack, handle, gap_security_level_for_connection(btstack, conn));
             }
 #endif
+            LH(__func__, __LINE__, 0);
             break;
 
         case HCI_EVENT_COMMAND_STATUS:
@@ -2124,6 +2148,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
             break;
 
         case HCI_EVENT_NUMBER_OF_COMPLETED_PACKETS:{
+            LH(__func__, __LINE__, 0);
             if (size < 3) return;
             uint16_t num_handles = packet[2];
             if (size != (3 + num_handles * 4)) return;
@@ -2655,6 +2680,7 @@ static void event_handler(btstack_state_t *btstack, uint8_t *packet, int size){
             break;
     }
 
+    LH(__func__, __LINE__, 0);
     handle_event_for_current_stack_state(btstack, packet, size);
 
     // notify upper stack
@@ -2862,10 +2888,8 @@ void hci_set_link_key_db(btstack_state_t *btstack, btstack_link_key_db_t const *
 
 void hci_init(btstack_state_t * btstack, const hci_transport_t *transport, const void *config){
 
-    if (!btstack->hci) {
-        btstack->hci = (hci_stack_t*) malloc(sizeof(hci_stack_t));
-    }
-    memset(btstack->hci, 0, sizeof(hci_stack_t));
+    btstack->hci = (hci_stack_t*) calloc(1, sizeof(hci_stack_t));
+    btstack->hci->hci_packet_buffer_data = calloc(1, HCI_OUTGOING_PRE_BUFFER_SIZE + HCI_OUTGOING_PACKET_BUFFER_SIZE);
 
     // reference to use transport layer implementation
     btstack->hci->hci_transport = transport;
@@ -3077,8 +3101,6 @@ static int hci_power_control_on(btstack_state_t *btstack){
 
     // open transport
     err = btstack->hci->hci_transport->open(btstack);
-    LH(__func__, __LINE__, err);
-    err = 0; // :HACK:
     if (err){
         log_error( "HCI_INIT failed, turning Bluetooth off again");
         if (btstack->hci->control && btstack->hci->control->off){
@@ -3087,7 +3109,6 @@ static int hci_power_control_on(btstack_state_t *btstack){
         hci_emit_hci_open_failed(btstack);
         return err;
     }
-    LH(__func__, __LINE__, 0);
     return 0;
 }
 
@@ -3160,8 +3181,6 @@ static void hci_power_transition_to_initializing(btstack_state_t *btstack){
     btstack->hci->hci_packet_buffer_reserved = 0;
     btstack->hci->state = HCI_STATE_INITIALIZING;
     btstack->hci->substate = HCI_INIT_SEND_RESET;
-    LH(__func__, __LINE__, btstack->hci->state);
-    LH(__func__, __LINE__, btstack->hci->substate);
 }
 
 int hci_power_control(btstack_state_t *btstack, HCI_POWER_MODE power_mode){
@@ -3175,13 +3194,11 @@ int hci_power_control(btstack_state_t *btstack, HCI_POWER_MODE power_mode){
             switch (power_mode){
                 case HCI_POWER_ON:
                     err = hci_power_control_on(btstack);
-                    LH(__func__, __LINE__, err);
                     if (err) {
                         log_error("hci_power_control_on() error %d", err);
                         return err;
                     }
                     hci_power_transition_to_initializing(btstack);
-                    LH(__func__, __LINE__, btstack->hci->state);
                     break;
                 case HCI_POWER_OFF:
                     // do nothing
@@ -3861,11 +3878,9 @@ static void hci_run(btstack_state_t *btstack){
 
     bool done;
 
-    LH(__func__, __LINE__, 0);
     // send continuation fragments first, as they block the prepared packet buffer
     done = hci_run_acl_fragments(btstack);
     if (done) return;
-    LH(__func__, __LINE__, btstack->hci->state);
 
 #ifdef ENABLE_HCI_CONTROLLER_TO_HOST_FLOW_CONTROL
     // send host num completed packets next as they don't require num_cmd_packets > 0
@@ -3876,7 +3891,6 @@ static void hci_run(btstack_state_t *btstack){
     }
 #endif
 
-    LH(__func__, __LINE__, btstack->hci->state);
     if (!hci_can_send_command_packet_now(btstack)) return;
 
     // global/non-connection oriented commands
@@ -3894,17 +3908,14 @@ static void hci_run(btstack_state_t *btstack){
     if (done) return;
 #endif
 
-    LH(__func__, __LINE__, btstack->hci->state);
     // send pending HCI commands
     done = hci_run_general_pending_commmands(btstack);
     if (done) return;
 
     // stack state sub statemachines
     hci_connection_t * connection;
-    LH(__func__, __LINE__, btstack->hci->state);
     switch (btstack->hci->state){
         case HCI_STATE_INITIALIZING:
-            LH(__func__, __LINE__, 0);
             hci_initializing_run(btstack);
             break;
 
@@ -4234,12 +4245,10 @@ int hci_send_cmd_va_arg(btstack_state_t *btstack, const hci_cmd_t *cmd, va_list 
         log_error("hci_send_cmd called but cannot send packet now");
         return 0;
     }
-
-    // for HCI INITIALIZATION
-    // log_info("hci_send_cmd: opcode %04x", cmd->opcode);
+    LHC(32, __func__, __LINE__, cmd->opcode);
+    hci_reserve_packet_buffer(btstack);
     btstack->hci->last_cmd_opcode = cmd->opcode;
 
-    hci_reserve_packet_buffer(btstack);
     uint8_t * packet = btstack->hci->hci_packet_buffer;
     uint16_t size = hci_cmd_create_from_template(packet, cmd, argptr);
     int err = hci_send_cmd_packet(btstack, packet, size);

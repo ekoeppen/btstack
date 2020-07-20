@@ -17,7 +17,7 @@ NM              := arm-none-eabi-nm
 
 MACHINEFLAGS    := -march=armv4 -mbig-endian
 ASFLAGS         := ${MACHINEFLAGS}
-CODEGENFLAGS    := -fPIC -fdata-sections -ffunction-sections -O0 -Werror=incompatible-pointer-types
+CODEGENFLAGS    := -fPIC -fdata-sections -ffunction-sections -O2 -Werror=incompatible-pointer-types -fpermissive
 DEFINES         := -D__arm -DhasPCMCIA -DforARM -DNO_ERRNO_H -DSTDC
 CFLAGS          := ${MACHINEFLAGS} ${CODEGENFLAGS} ${DEFINES} $(BTSTACKINCLUDES)
 CXXFLAGS        := ${MACHINEFLAGS} ${CODEGENFLAGS} ${DEFINES} $(BTSTACKINCLUDES) $(NEWTONINCLUDES) -fno-exceptions -fno-rtti
@@ -42,10 +42,11 @@ CORE   = \
     btstack_memory.c          \
     btstack_memory_pool.c       \
     btstack_run_loop.c		    \
-    btstack_run_loop_embedded.c \
+    btstack_run_loop_newton.c \
     btstack_tlv_none.c             \
     main.c 					  \
     btstack_util.c			          \
+	hal_newton.c \
 	log.c
 
 COMMON_C = \
@@ -58,6 +59,7 @@ COMMON_C = \
     hci_transport_h4.c                 \
 
 COMMON_CPP = \
+    hal_timer_newton.cpp            		   \
     hal_uart_newton.cpp            		   \
 
 SPP = \
@@ -95,8 +97,9 @@ SDPCLIENT_OBJ    = $(SDP_CLIENT:.c=.o)
 BLE_OBJ    = $(BLE:.c=.o)
 RUNTIME_OBJ = $(RUNTIMECXX:.cpp=.o) $(RUNTIMES:.s=.o)
 BTSTACK_OBJ = $(BTSTACK:.cpp=.o)
+GLUE_OBJ = glue.o
 
-OBJS = $(BTSTACK_OBJ) ${CORE_OBJ} ${COMMON_OBJ} $(RUNTIME_OBJ)
+OBJS = $(BTSTACK_OBJ) ${CORE_OBJ} ${COMMON_OBJ} $(RUNTIME_OBJ) $(GLUE_OBJ)
 
 all : btstack.ntkc
 

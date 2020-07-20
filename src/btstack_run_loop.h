@@ -235,6 +235,11 @@ void btstack_run_loop_add_data_source(btstack_state_t *btstack, btstack_data_sou
 int btstack_run_loop_remove_data_source(btstack_state_t *btstack, btstack_data_source_t * data_source);
 
 /**
+ * @brief Execute configured run loop once.
+ */
+void btstack_run_loop_execute_once(btstack_state_t *btstack);
+
+/**
  * @brief Execute configured run loop. This function does not return.
  */
 void btstack_run_loop_execute(btstack_state_t *btstack);

@@ -54,4 +54,11 @@ New__\class\()Fv:
     JT _ZN19PSerialChipRegistry14FindByLocationEm, 00384EDC
     JT _ZN11TSerialChip7PutByteEh, 00384B6C
     JT _ZN11TSerialChip13ProcessOptionEP7TOption, 00384C8C
+    JT _ZN11TSerialChip18InstallChipHandlerEPvP14SCCChannelInts, 00384B54
+    JT _ZN11TSerialChip9RxBufFullEv, 00384B9C
+    JT _ZN11TSerialChip7GetByteEv, 00384B84
+    JT _ZN11TSerialChip18SetInterruptEnableEh, 00384C14
     JT _ZN7TOptionC2Em, 0014AA38
+    JT _ZN11TUTaskWorldC2Ev, 01BCC670
+    JT _ZN11TUTaskWorld9StartTaskEhhmmmm, 01BDCE4C
+    JT _ZdlPvj, 00318F28

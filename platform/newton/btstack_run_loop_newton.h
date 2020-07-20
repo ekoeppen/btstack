@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 BlueKitchen GmbH
+ * Copyright (C) 2014 BlueKitchen GmbH
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,38 +35,57 @@
  *
  */
 
-#pragma once
+/*
+ *  btstack_run_loop_embedded.h
+ *  Functionality special to the embedded run loop
+ */
 
-#include <stdlib.h>
-#include <string.h>
-#include "btstack_uart_block.h"
-#include "btstack_run_loop_newton.h"
+#ifndef BTSTACK_RUN_LOOP_EMBEDDED_H
+#define BTSTACK_RUN_LOOP_EMBEDDED_H
 
-#ifdef __cplusplus
+#include "btstack_config.h"
+#include "btstack_linked_list.h"
+#include "btstack_run_loop.h"
+
+#ifdef HAVE_POSIX_TIME
+#include <sys/time.h>
+#endif
+#include <stdint.h>
+
+#if defined __cplusplus
 extern "C" {
 #endif
 
-struct btstack_uart_state {
-    // uart config
-    const btstack_uart_config_t * uart_config;
+/**
+ * Provide btstack_run_loop_embedded instance
+ */
+const btstack_run_loop_t * btstack_run_loop_embedded_get_instance(void);
 
-    // data source for integration with BTstack Runloop
-    btstack_data_source_t transport_data_source;
+// hack to fix HCI timer handling
+#ifdef HAVE_EMBEDDED_TICK
+/**
+ * @brief Sets how many milliseconds has one tick.
+ */
+uint32_t btstack_run_loop_embedded_ticks_for_ms(uint32_t time_in_ms);
+/**
+ * @brief Queries the current time in ticks.
+ */
+uint32_t btstack_run_loop_embedded_get_ticks(void);
+#endif
 
-    int send_complete;
-    int receive_complete;
-    int wakeup_event;
+/**
+ * @brief Sets an internal flag that is checked in the critical section just before entering sleep mode. Has to be called by the interrupt handler of a data source to signal the run loop that a new data is available.
+ */
+void btstack_run_loop_embedded_trigger(btstack_state_t *btstack);
+/**
+ * @brief Execute run_loop once. It can be used to integrate BTstack's timer and data source processing into a foreign run loop (it is not recommended).
+ */
+void btstack_run_loop_embedded_execute_once(btstack_state_t *btstack);
 
-    // callbacks
-    void (*block_sent)(btstack_state_t *btstack);
-    void (*block_received)(btstack_state_t *btstack);
-    void (*wakeup_handler)(btstack_state_t *btstack);
+/* API_END */
 
-    void *serial_chip;
-};
-
-extern const btstack_uart_block_t * btstack_uart_block_newton_instance(void);
-
-#ifdef __cplusplus
+#if defined __cplusplus
 }
 #endif
+
+#endif // BTSTACK_RUN_LOOP_EMBEDDED_H
