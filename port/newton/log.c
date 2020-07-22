@@ -1,7 +1,8 @@
-#include <stdarg.h>
+#include <stdarg_nwt.h>
 #include <stdio.h>
+#include <string.h>
 
-__attribute__((naked)) void nwt_log(const char *str)
+__attribute__((naked)) void einstein_puts(const char *str)
 {
     asm("stmdb   sp!, {r1, lr}\n"
         "ldr     lr, id0\n"
@@ -12,7 +13,7 @@ __attribute__((naked)) void nwt_log(const char *str)
         ".word      0x11a\n");
 }
 
-__attribute__((naked)) void nwt_break()
+__attribute__((naked)) void einstein_break()
 {
     asm("stmdb   sp!, {lr}\n"
         "ldr     lr, id1\n"
@@ -22,26 +23,20 @@ __attribute__((naked)) void nwt_break()
         ".word      0x116\n");
 }
 
-void nwt_logf(const char *fmt, ...)
+void einstein_here(int color, const char *func, int line)
 {
-    char buffer[80];
+    char buffer[120];
+    sprintf(buffer, "\x1b[%dm%s %d\x1b[0m", color, func, line);
+    einstein_puts(buffer);
+}
+
+void einstein_log(int color, const char *func, int line, const char *fmt, ...)
+{
+    char buffer[120];
     va_list args;
+    sprintf(buffer, "\x1b[%dm%s %d\x1b[0m ", color, func, line);
     va_start(args, fmt);
-    vsprintf(buffer, fmt, args);
-    nwt_log(buffer);
+    vsprintf(buffer + strlen(buffer), fmt, args);
+    einstein_puts(buffer);
     va_end(args);
-}
-
-void LH(const char *func, int line, int v)
-{
-    char buffer[80];
-    sprintf(buffer, "%s %d %d", func, line, v);
-    nwt_log(buffer);
-}
-
-void LHC(int color, const char *func, int line, int v)
-{
-    char buffer[80];
-    sprintf(buffer, "\x1b[%dm%s %d %d\x1b[0m", color, func, line, v);
-    nwt_log(buffer);
 }

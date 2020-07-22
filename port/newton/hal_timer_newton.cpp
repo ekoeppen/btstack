@@ -53,6 +53,7 @@
 #include "hal_newton.h"
 #include "hal_timer_newton.h"
 #include "log.h"
+#include "EventsCommands.h"
 
 #if defined __cplusplus
 extern "C" {

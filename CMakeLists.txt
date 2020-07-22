@@ -8,9 +8,12 @@ set(PLAT_NEWTON "${PROJECT_SOURCE_DIR}/platform/newton")
 set(NCT_PROJECTS $ENV{NCT_PROJECTS})
 add_subdirectory(${PLAT_NEWTON})
 add_executable(blunt2k
-    ${PORT}/btstack.cpp
-    ${PORT}/log.c
+    ${PORT}/Main.cpp
+    ${PORT}/BluntClient.cpp
+    ${PORT}/BluntServer.cpp
+    ${PORT}/EventsCommands.cpp
     ${PORT}/glue.s
+    ${PORT}/log.c
     ${PORT}/hal_newton.c
     ${PORT}/hal_timer_newton.cpp
     ${PORT}/hal_uart_newton.cpp
@@ -45,7 +48,7 @@ target_compile_options(blunt2k PRIVATE
         -O2
         -D__arm -DhasPCMCIA -DforARM -DNO_ERRNO_H -DSTDC
         -fPIC -fdata-sections -ffunction-sections
-        -Wno-multichar -Wno-endif-labels -Wno-builtin-declaration-mismatch>
+        -Wno-multichar -Wno-endif-labels -Wno-builtin-declaration-mismatch -Wno-write-strings>
     $<$<COMPILE_LANGUAGE:C>: -Werror=incompatible-pointer-types>
     $<$<COMPILE_LANGUAGE:CXX>: -fno-exceptions -fno-rtti -fpermissive>)
 target_link_options(blunt2k PRIVATE

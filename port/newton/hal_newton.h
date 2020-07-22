@@ -19,14 +19,6 @@ typedef struct btstack_hal_state {
 
 void btstack_hal_init(btstack_state_t *btstack);
 
-enum {
-    M_START = 1,
-    M_STOP = 2,
-    M_DATA_RECEIVED = 3,
-    M_TIMER = 4,
-    M_HCI_UP = 5,
-};
-
 #ifdef __cplusplus
 }
 #endif

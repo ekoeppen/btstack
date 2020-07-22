@@ -95,19 +95,19 @@ void btstack_assert_failed(const char * file, uint16_t line_nr);
 #endif
 
 #ifdef ENABLE_LOG_DEBUG
-#define log_debug(format, ...)  HCI_DUMP_LOG(HCI_DUMP_LOG_LEVEL_DEBUG, format,  ## __VA_ARGS__)
+#define log_debug(format, ...)  einstein_log(30 + HCI_DUMP_LOG_LEVEL_DEBUG, __func__, __LINE__, format,  ## __VA_ARGS__)
 #else
 #define log_debug(...) (void)(0)
 #endif
 
 #ifdef ENABLE_LOG_INFO
-#define log_info(format, ...)  HCI_DUMP_LOG(HCI_DUMP_LOG_LEVEL_INFO, format,  ## __VA_ARGS__)
+#define log_debug(format, ...)  einstein_log(30 + HCI_DUMP_LOG_LEVEL_INFO, __func__, __LINE__, format,  ## __VA_ARGS__)
 #else
 #define log_info(...) (void)(0)
 #endif
 
 #ifdef ENABLE_LOG_ERROR
-#define log_error(format, ...)  HCI_DUMP_LOG(HCI_DUMP_LOG_LEVEL_ERROR, format,  ## __VA_ARGS__)
+#define log_debug(format, ...)  einstein_log(30 + HCI_DUMP_LOG_LEVEL_ERROR, __func__, __LINE__, format,  ## __VA_ARGS__)
 #else
 #define log_error(...) (void)(0)
 #endif

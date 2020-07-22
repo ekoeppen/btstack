@@ -42,6 +42,7 @@
 #include "stdio.h"
 
 #include "SerialChipRegistry.h"
+#include "EventsCommands.h"
 
 #define kCMOSerialEinsteinLoc 'eloc'
 
@@ -62,13 +63,13 @@ THMOSerialEinsteinHardware::THMOSerialEinsteinHardware()
 void TxBEmptyIntHandler(void* context)
 {
     btstack_state_t *btstack = static_cast<btstack_state_t*>(context);
-    LH(__func__, __LINE__, 0);
+    einstein_here(90, __func__, __LINE__);
 }
 
 void RxCAvailIntHandler(void* context)
 {
     btstack_state_t *btstack = static_cast<btstack_state_t*>(context);
-    LH(__func__, __LINE__, btstack->hal->num_bytes_to_read);
+    einstein_log(90, __func__, __LINE__, "%d", btstack->hal->num_bytes_to_read);
     TSerialChip *chip = static_cast<TSerialChip*>(btstack->uart->serial_chip);
     while (chip->RxBufFull()) {
         uint8_t b = chip->GetByte();
@@ -94,19 +95,19 @@ void RxCAvailIntHandler(void* context)
         --btstack->hal->num_bytes_to_read;
     }
     TUPort serverPort(btstack->hal->server_port);
-    SendForInterrupt(serverPort, btstack->hal->int_message, 0, NULL, 0, M_DATA_RECEIVED);
+    SendForInterrupt(serverPort, btstack->hal->int_message, 0, NULL, 0, M_DATA);
 }
 
 void RxCSpecialIntHandler(void* context)
 {
     btstack_state_t *btstack = static_cast<btstack_state_t*>(context);
-    LH(__func__, __LINE__, 0);
+    einstein_here(90, __func__, __LINE__);
 }
 
 void ExtStsIntHandler(void* context)
 {
     btstack_state_t *btstack = static_cast<btstack_state_t*>(context);
-    LH(__func__, __LINE__, 0);
+    einstein_here(90, __func__, __LINE__);
 }
 
 void *hal_uart_newton_init(btstack_state_t *btstack)
@@ -132,13 +133,12 @@ void *hal_uart_newton_init(btstack_state_t *btstack)
             chip->SetInterruptEnable(true);
         }
     }
-    LH(__func__, __LINE__, (int) chip);
+    einstein_log(90, __func__, __LINE__, "%08x", (int) chip);
     return chip;
 }
 
 int hal_uart_newton_set_baud(btstack_state_t *btstack, uint32_t baud){
     int result = 0;
-    LH(__func__, __LINE__, baud);
     return result;
 }
 
@@ -146,11 +146,11 @@ void hal_uart_newton_shutdown(void) {
 }
 
 void hal_uart_newton_send_block(btstack_state_t *btstack, const uint8_t * data, uint16_t len){
-    LHC(34, __func__, __LINE__, len);
-    LHC(34, __func__, __LINE__, data[0]);
-    LHC(34, __func__, __LINE__, data[1]);
-    LHC(34, __func__, __LINE__, data[2]);
-    LHC(34, __func__, __LINE__, data[3]);
+    einstein_here(34, __func__, __LINE__);
+    einstein_log(34, __func__, __LINE__, "%d", data[0]);
+    einstein_log(34, __func__, __LINE__, "%d", data[1]);
+    einstein_log(34, __func__, __LINE__, "%d", data[2]);
+    einstein_log(34, __func__, __LINE__, "%d", data[3]);
     TSerialChip *chip = static_cast<TSerialChip*>(btstack->uart->serial_chip);
     for (size_t i = 0; i < len; i++) {
         chip->PutByte(*data++);
@@ -159,7 +159,7 @@ void hal_uart_newton_send_block(btstack_state_t *btstack, const uint8_t * data, 
 }
 
 void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *data, uint16_t len){
-    LH(__func__, __LINE__, len);
+    einstein_here(90, __func__, __LINE__);
     btstack->hal->bytes_to_read = data;
     btstack->hal->num_bytes_to_read = len;
     if (btstack->hal->num_bytes_to_read == 0) {
@@ -168,7 +168,7 @@ void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *data, uint
     while (btstack->hal->num_bytes_to_read > 0
             && btstack->hal->read_buffer_tail != btstack->hal->read_buffer_head) {
         *btstack->hal->bytes_to_read = btstack->hal->read_buffer[btstack->hal->read_buffer_tail];
-        LHC(35, __func__, __LINE__, *btstack->hal->bytes_to_read);
+        einstein_log(35, __func__, __LINE__, "%d", *btstack->hal->bytes_to_read);
         ++btstack->hal->bytes_to_read;
         if (btstack->hal->read_buffer_tail < sizeof(btstack->hal->read_buffer)) {
             ++btstack->hal->read_buffer_tail;
@@ -178,7 +178,7 @@ void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *data, uint
         --btstack->hal->num_bytes_to_read;
     }
     if (btstack->hal->num_bytes_to_read == 0 && btstack->uart->block_received) {
-        LH(__func__, __LINE__, len);
+        einstein_here(90, __func__, __LINE__);
         btstack->uart->block_received(btstack);
         btstack_run_loop_embedded_execute_once(btstack);
     }

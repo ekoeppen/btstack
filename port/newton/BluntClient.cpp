@@ -1,0 +1,199 @@
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include "NSandDDKIncludes.h"
+#include "EventsCommands.h"
+#include "BluntClient.h"
+
+BluntClient::BluntClient (RefArg blunt, TObjectId server)
+{
+    LOG (31, "BluntClient::BluntClient\n");
+    Init (kBluntEventId, kBluntEventClass);
+    fBlunt = new RefStruct (blunt);
+    fServerPort = server;
+}
+
+BluntClient::~BluntClient ()
+{
+    delete fBlunt;
+}
+
+void BluntClient::AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event)
+{
+    LOG (31, "BluntClient::AEHandlerProc %08x\n", event);
+    switch (((BluntEvent*) event)->fType) {
+        case E_RESET_COMPLETE:
+            LOG (31, "  Reset complete\n");
+            NSSendIfDefined (*fBlunt, SYM (MResetCallback));
+            break;
+        case E_INQUIRY_RESULT:
+            SendInquiryInfo ((BluntInquiryResultEvent *) event);
+            break;
+        case E_NAME_REQUEST_RESULT:
+            SendNameRequestInfo ((BluntNameRequestResultEvent*) event);
+            break;
+        case E_LINK_KEY_NOTIFICATION:
+            SendLinkKeyInfo ((BluntLinkKeyNotificationEvent *) event);
+            break;
+        case E_SERVICE_RESULT:
+            SendServiceInfo ((BluntServiceResultEvent *) event);
+            break;
+    }
+    delete ((BluntEvent*) event)->fOriginalEvent;
+}
+
+void BluntClient::AECompletionProc (TUMsgToken* token, ULong* size, TAEvent* event)
+{
+    LOG (31, "BluntClient::AECompletionProc %08x\n", event);
+}
+
+void BluntClient::IdleProc (TUMsgToken* token, ULong* size, TAEvent* event)
+{
+    LOG (31, "BluntClient::AEIdlerProc\n");
+}
+
+void BluntClient::Stop ()
+{
+    BluntCommand command(C_STOP);
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::Reset (Char* name)
+{
+    BluntResetCommand command;
+    strcpy (command.fName, name);
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::Discover (UByte time, UByte amount)
+{
+    BluntInquiryCommand command;
+    command.fTime = time;
+    command.fAmount = amount;
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::CancelDiscover ()
+{
+    BluntInquiryCancelCommand command;
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::NameRequest (UByte* bdAddr, ULong psRepMode, ULong psMode)
+{
+    BluntNameRequestCommand command;
+    memcpy (command.fBdAddr, bdAddr, 6);
+    command.fPSRepMode = psRepMode;
+    command.fPSMode = psMode;
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::Pair (UByte* bdAddr, Char *PIN, ULong psRepMode, ULong psMode)
+{
+    BluntInitiatePairingCommand command;
+    memcpy (command.fBdAddr, bdAddr, 6);
+    strcpy (command.fPIN, PIN);
+    command.fPSRepMode = psRepMode;
+    command.fPSMode = psMode;
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::GetServices (UByte* bdAddr, ULong psRepMode, ULong psMode, UByte* linkKey)
+{
+    BluntServiceRequestCommand command;
+    memcpy (command.fBdAddr, bdAddr, 6);
+    command.fPSRepMode = psRepMode;
+    command.fPSMode = psMode;
+    memcpy (command.fLinkKey, linkKey, sizeof (command.fLinkKey));
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::Connect (UByte* bdAddr, ULong psRepMode, ULong psMode, UByte rfcommPort, UByte* linkKey)
+{
+    BluntConnectionCommand command;
+    command.fToolPort = 0;
+    memcpy (command.fBdAddr, bdAddr, 6);
+    memcpy (command.fLinkKey, linkKey, sizeof (command.fLinkKey));
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::Disconnect (UByte* bdAddr)
+{
+    BluntDisconnectCommand command;
+    command.fToolPort = 0;
+    memcpy (command.fBdAddr, bdAddr, 6);
+    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
+}
+
+void BluntClient::SendInquiryInfo (BluntInquiryResultEvent* event)
+{
+    RefVar device;
+    RefVar addr;
+
+    LOG (31, "BluntClient::SendInquiryInfo %d\n", event->fResult);
+    if (event->fResult == noErr) {
+        device = AllocateFrame ();
+        addr = AllocateBinary (SYM (binary), 6);
+        WITH_LOCKED_BINARY(addr, a)
+        memcpy (a, event->fBdAddr, 6);
+        END_WITH_LOCKED_BINARY(addr);
+        SetFrameSlot (device, SYM (fBdAddr), addr);
+        SetFrameSlot (device, SYM (fClass), MAKEINT ((event->fClass[0] << 16) + (event->fClass[1] << 8) + event->fClass[2]));
+        SetFrameSlot (device, SYM (fClockOffset), MAKEINT ((event->fClockOffset[0] << 8) + event->fClockOffset[1]));
+        SetFrameSlot (device, SYM (fPSRepMode), MAKEINT (event->fPSRepMode));
+        SetFrameSlot (device, SYM (fPSPeriodMode), MAKEINT (event->fPSPeriodMode));
+        SetFrameSlot (device, SYM (fPSMode), MAKEINT (event->fPSMode));
+        NSSendIfDefined (*fBlunt, SYM (MInquiryCallback), device);
+    } else {
+        NSSendIfDefined (*fBlunt, SYM (MInquiryCallback), NILREF);
+    }
+}
+
+void BluntClient::SendNameRequestInfo (BluntNameRequestResultEvent* event)
+{
+    RefVar addr;
+
+    LOG (31, "BluntClient::SendNameRequestInfo (%s)\n", event->fName);
+    addr = AllocateBinary (SYM (binary), 6);
+    WITH_LOCKED_BINARY(addr, a)
+    memcpy (a, event->fBdAddr, 6);
+    END_WITH_LOCKED_BINARY(addr);
+    NSSendIfDefined (*fBlunt, SYM (MNameRequestCallback), addr, MakeString ((char*) event->fName));
+}
+
+void BluntClient::SendLinkKeyInfo (BluntLinkKeyNotificationEvent* event)
+{
+    RefVar addr;
+    RefVar key;
+
+    LOG (31, "BluntClient::SendLinkKeyInfo\n");
+    addr = AllocateBinary (SYM (binary), 6);
+    key = AllocateBinary (SYM (binary), 16);
+    WITH_LOCKED_BINARY(addr, a)
+    memcpy (a, event->fBdAddr, 6);
+    END_WITH_LOCKED_BINARY(addr);
+    WITH_LOCKED_BINARY(key, k)
+    memcpy (k, event->fLinkKey, 16);
+    END_WITH_LOCKED_BINARY(key);
+    NSSendIfDefined (*fBlunt, SYM (MLinkKeyCallback), addr, key);
+}
+
+void BluntClient::SendServiceInfo (BluntServiceResultEvent* event)
+{
+    RefVar service;
+    RefVar addr;
+
+    LOG (31, "BluntClient::SendServiceInfo %d\n", event->fResult);
+    service = AllocateFrame ();
+    SetFrameSlot (service, SYM (fResult), MAKEINT (event->fResult));
+    if (event->fResult == noErr) {
+        addr = AllocateBinary (SYM (binary), 6);
+        WITH_LOCKED_BINARY(addr, a)
+        memcpy (a, event->fBdAddr, 6);
+        END_WITH_LOCKED_BINARY(addr);
+        SetFrameSlot (service, SYM (fBdAddr), addr);
+        SetFrameSlot (service, SYM (fService), MAKEINT (event->fServiceUUID));
+        SetFrameSlot (service, SYM (fPort), MAKEINT (event->fServicePort));
+    }
+    NSSendIfDefined (*fBlunt, SYM (MServicesCallback), service);
+}

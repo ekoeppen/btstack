@@ -186,7 +186,7 @@ static void hci_transport_h4_reset_statemachine(btstack_state_t *btstack){
 
 static void hci_transport_h4_trigger_next_read(btstack_state_t *btstack){
     log_info("hci_transport_h4_trigger_next_read: %u bytes", btstack->hci_h4->bytes_to_read);
-    LH(__func__, __LINE__, btstack->hci_h4->bytes_to_read);
+    einstein_log(90, __func__, __LINE__, "%d", btstack->hci_h4->bytes_to_read);
     btstack->hci_h4->btstack_uart->receive_block(btstack, &btstack->hci_h4->hci_packet[btstack->hci_h4->read_pos], btstack->hci_h4->bytes_to_read);
 }
 
@@ -219,7 +219,7 @@ static void hci_transport_h4_packet_complete(btstack_state_t *btstack){
             }
 #endif
     uint16_t packet_len = btstack->hci_h4->read_pos-1;
-    LH(__func__, __LINE__, packet_len);
+    einstein_log(90, __func__, __LINE__, "%d", packet_len);
 
     // reset state machine before delivering packet to stack as it might close the transport
     hci_transport_h4_reset_statemachine(btstack);
@@ -229,7 +229,7 @@ static void hci_transport_h4_packet_complete(btstack_state_t *btstack){
 static void hci_transport_h4_block_read(btstack_state_t *btstack){
 
     btstack->hci_h4->read_pos += btstack->hci_h4->bytes_to_read;
-    LHC(33, __func__, __LINE__, btstack->hci_h4->h4_state);
+    einstein_log(33, __func__, __LINE__, "%d", btstack->hci_h4->h4_state);
     switch (btstack->hci_h4->h4_state) {
         case H4_W4_PACKET_TYPE:
             switch (btstack->hci_h4->hci_packet[0]){
@@ -311,7 +311,7 @@ static void hci_transport_h4_block_read(btstack_state_t *btstack){
         btstack->hci_h4->bytes_to_read = 7;
     }
 #endif
-    LHC(33, __func__, __LINE__, btstack->hci_h4->h4_state);
+    einstein_log(33, __func__, __LINE__, "%d", btstack->hci_h4->h4_state);
 
     // forward packet if payload size == 0
     if (btstack->hci_h4->h4_state == H4_W4_PAYLOAD && btstack->hci_h4->bytes_to_read == 0) {
@@ -399,7 +399,7 @@ static int hci_transport_h4_send_packet(btstack_state_t *btstack, uint8_t packet
 
 static void hci_transport_h4_init(btstack_state_t *btstack, const void * transport_config){
     // check for hci_transport_config_uart_t
-    nwt_log("hci_transport_h4_init");
+    einstein_here(90, __func__, __LINE__);
     if (!transport_config) {
         log_error("hci_transport_h4: no config!");
         return;
@@ -428,7 +428,7 @@ static void hci_transport_h4_init(btstack_state_t *btstack, const void * transpo
 
 static int hci_transport_h4_open(btstack_state_t *btstack){
     // open uart driver
-    LH(__func__, __LINE__, 0);
+    einstein_here(90, __func__, __LINE__);
     int res = btstack->hci_h4->btstack_uart->open(btstack);
     if (res){
         return res;

@@ -107,7 +107,7 @@ static void btstack_run_loop_embedded_add_timer(btstack_state_t *btstack, btstac
     ts->context = btstack;
     it->next = (btstack_linked_item_t *) ts;
     hal_timer_newton_set_timer(btstack, ts->timeout);
-    LOG(34, __func__, __LINE__, "%d", ts->timeout);
+    einstein_log(34, __func__, __LINE__, "%d", ts->timeout);
 }
 
 /**
