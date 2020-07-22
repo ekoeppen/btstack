@@ -94,7 +94,7 @@ void packet_handler (btstack_state_t *btstack, uint8_t packet_type, uint16_t cha
     }
 }
 
-extern ULong __vt__BluntServer[5];
+extern ULong *__vt__BluntServer;
 
 ULong BluntServer::GetSizeOf ()
 {
@@ -254,7 +254,7 @@ void BluntServer::SendEvent (BluntEvent* event)
 BluntServer *BluntServer::New()
 {
     BluntServer *server = new BluntServer();
-    *(ULong *) server = &__vt__BluntServer;
+    *(ULong ***) server = &__vt__BluntServer;
     return server;
 }
 

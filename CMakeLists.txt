@@ -50,7 +50,7 @@ target_compile_options(blunt2k PRIVATE
         -fPIC -fdata-sections -ffunction-sections
         -Wno-multichar -Wno-endif-labels -Wno-builtin-declaration-mismatch -Wno-write-strings>
     $<$<COMPILE_LANGUAGE:C>: -Werror=incompatible-pointer-types>
-    $<$<COMPILE_LANGUAGE:CXX>: -fno-exceptions -fno-rtti -fpermissive>)
+    $<$<COMPILE_LANGUAGE:CXX>: -fno-exceptions -fno-rtti>)
 target_link_options(blunt2k PRIVATE
     -L${PORT}
     -EB -shared --gc-sections
