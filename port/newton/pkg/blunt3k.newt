@@ -1,0 +1,25 @@
+mainView := {
+    _proto: protoFloatNGo,
+    title: "Blunt 3k",
+    appSymbol: '|Blunt 3k:40Hz|,
+    viewJustify: vjParentTopV + vjParentLeftH,
+    viewBounds: {left: 32, top: 32, right: 120, bottom: 120},
+    MCreate: blunt3k.MCreate,
+
+    stepChildren: [
+        {
+            _proto: protoTextButton,
+            text: "Create",
+            viewBounds: {left: 8, top: 8, right: 80, bottom: 24},
+            buttonClickScript: func() begin
+                :MCreate();
+            end,
+        },
+    ]
+};
+
+{
+    app: '|Blunt 3k:40Hz|,
+    text: "Blunt 3k!",
+    theForm: mainView,
+}

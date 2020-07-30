@@ -1,0 +1,10 @@
+{
+    parts: [
+        {
+            main: "blunt3k.newt",
+            modules: ["../../../build/blunt3k.ntkc"],
+        }
+    ],
+    name: "Blunt:40hz",
+    platform: "Newton 2.1"
+}

@@ -26,7 +26,7 @@ class TObjectIterator;
 class RefVar;
 typedef const RefVar& RefArg;
 
-typedef Ref (*MapSlotsFunction)(RefArg tag, RefArg value, ULong anything);
+typedef Ref(*MapSlotsFunction)(RefArg tag, RefArg value, ULong anything);
 
 extern Ref  MakeInt(long i);
 extern Ref  MakeChar(unsigned char c);
@@ -41,11 +41,11 @@ extern Boolean IsRealPtr(RefArg r);
 extern long RefToInt(RefArg r);
 extern UniChar RefToUniChar(RefArg r);
 
-extern "C" void EnterFIQAtomic (void);
-extern "C" void ExitFIQAtomic (void);
-extern "C" void _EnterFIQAtomic (void);
-extern "C" void _ExitFIQAtomicFast (void);
-extern TUPort* GetNewtTaskPort (void);
+extern "C" void EnterFIQAtomic(void);
+extern "C" void ExitFIQAtomic(void);
+extern "C" void _EnterFIQAtomic(void);
+extern "C" void _ExitFIQAtomicFast(void);
+extern TUPort* GetNewtTaskPort(void);
 extern "C" long LockStack(TULockStack* lockRef, ULong additionalSpace); // Lock the entire stack plus additionalSpace # of bytes
 extern "C" long UnlockStack(TULockStack* lockRef);
 extern "C" long LockHeapRange(VAddr start, VAddr end, Boolean wire);    // Lock range from start up to but not including end.  Wire will prevent v->p mappings from changing.
@@ -70,17 +70,17 @@ void heartbeat_handler(btstack_state_t *btstack, btstack_timer_source_t *ts){
     btstack->run_loop->exit = 1;
 }
 
-void packet_handler (btstack_state_t *btstack, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
+void packet_handler(btstack_state_t *btstack, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     if (packet_type != HCI_EVENT_PACKET) return;
     einstein_log(31, __func__, __LINE__, "%d", packet_type);
-    switch(hci_event_packet_get_type(packet)){
+    switch (hci_event_packet_get_type(packet)){
         case BTSTACK_EVENT_STATE:
             if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING) {
                 einstein_here(31, __func__, __LINE__);
                 TUAsyncMessage *message = new TUAsyncMessage();
                 message->Init(false);
                 TUPort serverPort(BluntServer::Port());
-                serverPort.Send (message, (void *) NULL, 0, (TTimeout) kNoTimeout, NULL, M_EVENT);
+                serverPort.Send(message,(void *) NULL, 0,(TTimeout) kNoTimeout, NULL, M_EVENT);
             }
             break;
         case HCI_EVENT_COMMAND_COMPLETE:
@@ -96,17 +96,17 @@ void packet_handler (btstack_state_t *btstack, uint8_t packet_type, uint16_t cha
 
 extern ULong *__vt__BluntServer;
 
-ULong BluntServer::GetSizeOf ()
+ULong BluntServer::GetSizeOf()
 {
-    return sizeof (BluntServer);
+    return sizeof(BluntServer);
 }
 
-long BluntServer::TaskConstructor ()
+long BluntServer::TaskConstructor()
 {
     einstein_here(90, __func__, __LINE__);
     TUNameServer nameServer;
-    fPort.Init ();
-    nameServer.RegisterName ("BluntServer", "TUPort", fPort.fId, 0);
+    fPort.Init();
+    nameServer.RegisterName("BluntServer", "TUPort", fPort.fId, 0);
     fStack = static_cast<btstack_state_t *>(calloc(1, sizeof(btstack_state_t)));
     btstack_hal_init(fStack);
     fStack->hal->server_port = fPort.fId;
@@ -114,19 +114,20 @@ long BluntServer::TaskConstructor ()
     const hci_transport_t *transport = hci_transport_h4_instance(fStack, btstack_uart_block_newton_instance());
 
     hci_init(fStack, transport, &config);
+    einstein_break();
     hci_set_link_key_db(fStack, btstack_link_key_db_static_instance());
 
     return noErr;
 }
 
-void BluntServer::TaskDestructor ()
+void BluntServer::TaskDestructor()
 {
     einstein_here(90, __func__, __LINE__);
     TUNameServer nameServer;
-    nameServer.UnRegisterName ("BluntServer", "TUPort");
+    nameServer.UnRegisterName("BluntServer", "TUPort");
 }
 
-void BluntServer::TaskMain ()
+void BluntServer::TaskMain()
 {
     ULong type = 0;
     TUMsgToken token;
@@ -135,7 +136,9 @@ void BluntServer::TaskMain ()
     btstack_packet_callback_registration_t hci_event_callback_registration;
 
     fIntMessage.Init(false);
+    fTimerMessage.Init(false);
     fStack->hal->int_message = fIntMessage.GetMsgId();
+    fStack->hal->timer_message = fTimerMessage.GetMsgId();
     hci_event_callback_registration.callback = &packet_handler;
     hci_add_event_handler(fStack, &hci_event_callback_registration);
     btstack_run_loop_set_timer(fStack, &heartbeat, HEARTBEAT_PERIOD_MS);
@@ -143,29 +146,31 @@ void BluntServer::TaskMain ()
     heartbeat.process = &heartbeat_handler;
     fEnd = false;
 
-    LOG (31, "BluntServer::TaskMain");
+    einstein_here(31, __func__, __LINE__);
     while (!fEnd) {
         n = MAX_MESSAGE;
-        fPort.Receive (&n, fMessage, MAX_MESSAGE, &token, &type);
-        LOG (31, __func__, __LINE__, "%d");
+        fPort.Receive(&n, fMessage, MAX_MESSAGE, &token, &type);
+        einstein_log(31, __func__, __LINE__, "%d", type);
         switch (type) {
             case M_DATA:
-                HandleData ();
+                HandleData();
                 break;
             case M_COMMAND:
-                HandleCommand ((BluntCommand *) fMessage);
+                HandleCommand((BluntCommand *) fMessage);
                 break;
             case M_EVENT:
-                HandleEvent ((BluntEvent*) fMessage);
-//              delete (BluntTimerEvent*) fMessage;
+                HandleEvent((BluntEvent*) fMessage);
+//              delete(BluntTimerEvent*) fMessage;
                 break;
+            case M_TIMER:
+                HandleTimer();
             default:
                 break;
         }
     }
 }
 
-void BluntServer::HandleData ()
+void BluntServer::HandleData()
 {
     if (fStack->uart->block_received) {
         einstein_here(90, __func__, __LINE__);
@@ -174,81 +179,68 @@ void BluntServer::HandleData ()
     }
 }
 
-void BluntServer::HandleCommand (BluntCommand* command)
+void BluntServer::HandleTimer()
 {
-    if (command->fType != C_LOG) {
-        LOG (31, __func__, __LINE__, "%d", command->fType);
-    }
+    btstack_run_loop_embedded_execute_once(fStack);
+}
 
-    switch (command->fType) {
-        case C_START:
-            hci_power_control(fStack, HCI_POWER_ON);
-            break;
-        case C_STOP:
-            fEnd = true;
-            break;
-        case C_RESET:
-        case C_CONNECT:
-        case C_DISCONNECT:
-        case C_INQUIRY:
-        case C_INQUIRY_CANCEL:
-        case C_NAME_REQUEST:
-            break;
-        case C_INIT_PAIR:
-            InitiatePairing ((BluntInitiatePairingCommand*) command);
-            break;
-        case C_SERVICE_REQUEST:
-            InitiateServiceRequest ((BluntServiceRequestCommand*) command);
-            break;
-        case C_DATA:
-            SendData ((BluntDataCommand*) command);
-            break;
-        case C_STATUS:
-            break;
-        case C_LOG:
-            break;
-    }
+void BluntServer::HandleCommand(BluntCommand* command)
+{
+    einstein_here(31, __func__, __LINE__);
+    command->Process(this);
     if (command->fDelete) delete command->fOriginalCommand;
 }
 
-void BluntServer::HandleEvent (BluntEvent *event)
+void BluntServer::HandleEvent(BluntEvent *event)
 {
-    LOG (31, __func__, __LINE__, "%d", event->fType);
+    einstein_log(31, __func__, __LINE__, "%d", event->fType);
     switch (event->fType) {
         case E_TIMER:
-            HandleTimer (reinterpret_cast<BluntTimerEvent*>(event));
+            HandleTimer(reinterpret_cast<BluntTimerEvent*>(event));
             break;
         default:
             break;
     }
 }
 
-void BluntServer::HandleTimer (BluntTimerEvent *event)
+void BluntServer::HandleTimer(BluntTimerEvent *event)
 {
     btstack_run_loop_embedded_execute_once(fStack);
     delete event->fOriginalEvent;
 }
 
-void BluntServer::SendData (BluntDataCommand* command)
+void BluntServer::SendData(BluntDataCommand* command)
 {
-    einstein_here (90, __func__, __LINE__);
+    einstein_here(90, __func__, __LINE__);
 }
 
-void BluntServer::InitiatePairing (BluntInitiatePairingCommand* command)
+void BluntServer::Start()
 {
-    einstein_here (90, __func__, __LINE__);
+    einstein_here(90, __func__, __LINE__);
+    hci_power_control(fStack, HCI_POWER_ON);
 }
 
-void BluntServer::InitiateServiceRequest (BluntServiceRequestCommand* command)
+void BluntServer::Stop()
 {
-    einstein_here (90, __func__, __LINE__);
+    einstein_here(90, __func__, __LINE__);
+    fEnd = true;
 }
 
-void BluntServer::SendEvent (BluntEvent* event)
+void BluntServer::InitiatePairing(BluntInitiatePairingCommand* command)
 {
-    einstein_here (90, __func__, __LINE__);
-    TUPort* port = GetNewtTaskPort ();
-    port->Send (event, (void *) event, event->GetSizeOf ());
+    einstein_here(90, __func__, __LINE__);
+}
+
+void BluntServer::InitiateServiceRequest(BluntServiceRequestCommand* command)
+{
+    einstein_here(90, __func__, __LINE__);
+}
+
+void BluntServer::SendEvent(BluntEvent* event)
+{
+    einstein_here(90, __func__, __LINE__);
+    TUPort* port = GetNewtTaskPort();
+    port->Send(event,(void *) event, event->GetSizeOf());
 }
 
 BluntServer *BluntServer::New()
@@ -258,12 +250,12 @@ BluntServer *BluntServer::New()
     return server;
 }
 
-TObjectId BluntServer::Port ()
+TObjectId BluntServer::Port()
 {
     TUNameServer nameServer;
     ULong id;
     ULong spec;
 
-    nameServer.Lookup ("BluntServer", "TUPort", &id, &spec);
+    nameServer.Lookup("BluntServer", "TUPort", &id, &spec);
     return id;
 }

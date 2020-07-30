@@ -54,7 +54,7 @@ void BluntClient::IdleProc (TUMsgToken* token, ULong* size, TAEvent* event)
 
 void BluntClient::Stop ()
 {
-    BluntCommand command(C_STOP);
+    BluntStopCommand command;
     fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
 }
 

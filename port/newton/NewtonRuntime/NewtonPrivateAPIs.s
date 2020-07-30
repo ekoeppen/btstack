@@ -61,4 +61,5 @@ New__\class\()Fv:
     JT _ZN7TOptionC2Em, 0014AA38
     JT _ZN11TUTaskWorldC2Ev, 01BCC670
     JT _ZN11TUTaskWorld9StartTaskEhhmmmm, 01BDCE4C
+    JT _ZN14TUAsyncMessageC1Emm, 01BCD6A8
     JT _ZdlPvj, 00318F28

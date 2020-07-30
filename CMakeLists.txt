@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(blunt2k)
+project(blunt3k)
 set(CMAKE_EXECUTABLE_SUFFIX ".elf")
 enable_language(ASM)
 set(BTSTACK "${PROJECT_SOURCE_DIR}/src")
@@ -7,7 +7,7 @@ set(PORT "${PROJECT_SOURCE_DIR}/port/newton")
 set(PLAT_NEWTON "${PROJECT_SOURCE_DIR}/platform/newton")
 set(NCT_PROJECTS $ENV{NCT_PROJECTS})
 add_subdirectory(${PLAT_NEWTON})
-add_executable(blunt2k
+add_executable(blunt3k
     ${PORT}/Main.cpp
     ${PORT}/BluntClient.cpp
     ${PORT}/BluntServer.cpp
@@ -20,7 +20,7 @@ add_executable(blunt2k
     ${PORT}/NewtonRuntime/NewtonExceptions.cpp
     ${PORT}/NewtonRuntime/NewtonPrivateAPIs.s
     ${PORT}/NewtonRuntime/NewtonPublicAPIs.s)
-target_include_directories(blunt2k PUBLIC ${BTSTACK} ${PORT} ${PLAT_NEWTON}
+target_include_directories(blunt3k PUBLIC ${BTSTACK} ${PORT} ${PLAT_NEWTON}
     ${NCT_PROJECTS}/DDKIncludes
     ${NCT_PROJECTS}/DDKIncludes/Bootstrap
     ${NCT_PROJECTS}/DDKIncludes/CLibrary
@@ -42,7 +42,7 @@ target_include_directories(blunt2k PUBLIC ${BTSTACK} ${PORT} ${PLAT_NEWTON}
     ${NCT_PROJECTS}/Includes/Utilities
     ${NCT_PROJECTS}/LanternDriver_DDK/Includes
     ${NCT_PROJECTS}/NSandDDK)
-target_compile_options(blunt2k PRIVATE
+target_compile_options(blunt3k PRIVATE
     -march=armv4 -mbig-endian
     $<$<COMPILE_LANGUAGE:C,CXX>:
         -O2
@@ -51,13 +51,13 @@ target_compile_options(blunt2k PRIVATE
         -Wno-multichar -Wno-endif-labels -Wno-builtin-declaration-mismatch -Wno-write-strings>
     $<$<COMPILE_LANGUAGE:C>: -Werror=incompatible-pointer-types>
     $<$<COMPILE_LANGUAGE:CXX>: -fno-exceptions -fno-rtti>)
-target_link_options(blunt2k PRIVATE
+target_link_options(blunt3k PRIVATE
     -L${PORT}
     -EB -shared --gc-sections
     --no-allow-shlib-undefined --no-export-dynamic --no-undefined -x
-    -Tbtstack.ld --version-script=btstack.ver)
-target_link_libraries(blunt2k btstack_newton)
-add_custom_command(TARGET blunt2k POST_BUILD
-    COMMAND rm -f blunt2k.ntkc
-    COMMAND ELFtoNTK -via ${PORT}/btstack.exp -o blunt2k.ntkc $<TARGET_FILE:blunt2k>)
-set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "blunt2k.ntkc")
+    -Tblunt3k.ld --version-script=blunt3k.ver)
+target_link_libraries(blunt3k btstack_newton)
+add_custom_command(TARGET blunt3k POST_BUILD
+    COMMAND rm -f blunt3k.ntkc
+    COMMAND ELFtoNTK -via ${PORT}/blunt3k.exp -o blunt3k.ntkc $<TARGET_FILE:blunt3k>)
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "blunt3k.ntkc")

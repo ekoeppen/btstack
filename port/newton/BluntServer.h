@@ -29,6 +29,7 @@ public:
 
     TUPort                  fPort;
     TUAsyncMessage          fIntMessage;
+    TUAsyncMessage          fTimerMessage;
 
     UByte                   fMessage[MAX_MESSAGE];
 
@@ -50,26 +51,30 @@ public:
     Byte                    fCurrentService;
     Byte                    fNumQueriedServices;
 
-    NewtonErr               Initialize (ULong location, ULong driver, ULong speed, Long logLevel);
+    NewtonErr               Initialize(ULong location, ULong driver, ULong speed, Long logLevel);
 
-    void                    HandleData ();
-    void                    HandleCommand (BluntCommand* command);
-    void                    HandleEvent (BluntEvent *event);
+    void                    HandleData();
+    void                    HandleTimer();
+    void                    HandleCommand(BluntCommand* command);
+    void                    HandleEvent(BluntEvent *event);
 
-    void                    HandleTimer (BluntTimerEvent *event);
-    void                    InitiatePairing (BluntInitiatePairingCommand* command);
-    void                    InitiateServiceRequest (BluntServiceRequestCommand* command);
-    void                    SendData (BluntDataCommand* command);
-    void                    Status ();
+    void                    HandleTimer(BluntTimerEvent *event);
+    void                    InitiatePairing(BluntInitiatePairingCommand* command);
+    void                    InitiateServiceRequest(BluntServiceRequestCommand* command);
+    void                    SendData(BluntDataCommand* command);
+    void                    Status();
 
-    virtual ULong           GetSizeOf ();
+    virtual ULong           GetSizeOf();
 
-    virtual long            TaskConstructor ();
-    virtual void            TaskDestructor ();
-    virtual void            TaskMain ();
+    virtual long            TaskConstructor();
+    virtual void            TaskDestructor();
+    virtual void            TaskMain();
 
-    void                    SendEvent (BluntEvent* event);
-    void                    SetTimer (Handler *handler, int milliSecondDelay, void *userData = NULL);
+    void                    Start();
+    void                    Stop();
 
-    static TObjectId        Port (void);
+    void                    SendEvent(BluntEvent* event);
+    void                    SetTimer(Handler *handler, int milliSecondDelay, void *userData = NULL);
+
+    static TObjectId        Port(void);
 };

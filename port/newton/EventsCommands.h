@@ -5,6 +5,8 @@
 #include <UserPorts.h>
 #include "Definitions.h"
 
+class BluntServer;
+
 enum BluntEventType {
     E_BLUNT_EVENT,                      // 0
     E_GENERIC_EVENT,
@@ -21,23 +23,6 @@ enum BluntEventType {
     E_DATA,
     E_DATA_SENT,
     E_STATUS
-};
-
-enum BluntCommandType {
-    C_CONNECT,                          // 0
-    C_DISCONNECT,
-    C_INQUIRY,
-    C_INQUIRY_CANCEL,
-    C_NAME_REQUEST,
-    C_INIT_PAIR,                        // 5
-    C_RESET,
-    C_SERVICE_REQUEST,
-    C_SET_LOG_LEVEL,
-    C_DATA,
-    C_STATUS,                           // 10
-    C_LOG,
-    C_START,
-    C_STOP
 };
 
 enum ConnectionLayer {
@@ -59,7 +44,7 @@ class Handler;
 class CBufferList;
 
 // ================================================================================
-// ¥ BluntEvent classes
+// BluntEvent classes
 // ================================================================================
 
 class BluntEvent: public TAEvent, public TUAsyncMessage
@@ -70,9 +55,9 @@ public:
     NewtonErr       fResult;
     Boolean         fDelete;
 
-                    BluntEvent (BluntEventType type, NewtonErr result);
+                    BluntEvent(BluntEventType type, NewtonErr result);
     virtual         ~BluntEvent();
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntTimerEvent: public BluntEvent
@@ -81,15 +66,15 @@ public:
     Handler*        fHandler;
     void*           fUserData;
 
-                    BluntTimerEvent (NewtonErr result, Handler *handler, void *userData):
-                        BluntEvent (E_TIMER_EVENT, result), fHandler (handler), fUserData (userData) {}
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntTimerEvent(NewtonErr result, Handler *handler, void *userData):
+                        BluntEvent(E_TIMER_EVENT, result), fHandler(handler), fUserData(userData) {}
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntResetCompleteEvent: public BluntEvent
 {
 public:
-                    BluntResetCompleteEvent (NewtonErr result): BluntEvent (E_RESET_COMPLETE, result) {}
+                    BluntResetCompleteEvent(NewtonErr result): BluntEvent(E_RESET_COMPLETE, result) {}
 };
 
 class BluntInquiryResultEvent: public BluntEvent
@@ -102,8 +87,8 @@ public:
     UByte           fClass[3];
     UByte           fClockOffset[2];
 
-                    BluntInquiryResultEvent (NewtonErr result);
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntInquiryResultEvent(NewtonErr result);
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntNameRequestResultEvent: public BluntEvent
@@ -112,8 +97,8 @@ public:
     UChar           fName[64];
     UByte           fBdAddr[6];
 
-                    BluntNameRequestResultEvent (NewtonErr result, UChar* name, UByte* addr);
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntNameRequestResultEvent(NewtonErr result, UChar* name, UByte* addr);
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntLinkKeyNotificationEvent: public BluntEvent
@@ -122,8 +107,8 @@ public:
     UByte           fBdAddr[6];
     UByte           fLinkKey[16];
 
-                    BluntLinkKeyNotificationEvent (NewtonErr result, UByte* addr, UByte* key);
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntLinkKeyNotificationEvent(NewtonErr result, UByte* addr, UByte* key);
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntServiceResultEvent: public BluntEvent
@@ -133,8 +118,8 @@ public:
     ULong           fServiceUUID;
     Byte            fServicePort;
 
-                    BluntServiceResultEvent (NewtonErr result): BluntEvent (E_SERVICE_RESULT, result) {}
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntServiceResultEvent(NewtonErr result): BluntEvent(E_SERVICE_RESULT, result) {}
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntCommandCompleteEvent: public BluntEvent
@@ -142,8 +127,8 @@ class BluntCommandCompleteEvent: public BluntEvent
 public:
     ULong           fStatus;
 
-                    BluntCommandCompleteEvent (NewtonErr result, ULong s);
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntCommandCompleteEvent(NewtonErr result, ULong s);
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntConnectionCompleteEvent: public BluntEvent
@@ -155,15 +140,15 @@ public:
     Byte            fRFCOMMPort;
     Handler         *fHandler;
 
-                    BluntConnectionCompleteEvent (NewtonErr result);
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntConnectionCompleteEvent(NewtonErr result);
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntDisconnectCompleteEvent: public BluntEvent
 {
 public:
-                    BluntDisconnectCompleteEvent (NewtonErr result);
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntDisconnectCompleteEvent(NewtonErr result);
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntDataEvent: public BluntEvent
@@ -174,9 +159,9 @@ public:
     Boolean         fDelete;
     Handler         *fHandler;
 
-                    BluntDataEvent (NewtonErr result, UByte *data, Long len, Handler *handler):
-                        BluntEvent (E_DATA, result), fDelete (false), fData (data), fLength (len), fHandler (handler) {}
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntDataEvent(NewtonErr result, UByte *data, Long len, Handler *handler):
+                        BluntEvent(E_DATA, result), fDelete(false), fData(data), fLength(len), fHandler(handler) {}
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntDataSentEvent: public BluntEvent
@@ -184,43 +169,43 @@ class BluntDataSentEvent: public BluntEvent
 public:
     Long            fAmount;
 
-                    BluntDataSentEvent (NewtonErr result, Long len):
-                        BluntEvent (E_DATA_SENT, result), fAmount (len) {}
-    virtual ULong   GetSizeOf (void) { return sizeof (*this); }
+                    BluntDataSentEvent(NewtonErr result, Long len):
+                        BluntEvent(E_DATA_SENT, result), fAmount(len) {}
+    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 // ================================================================================
-// ¥ BluntCommand classes
+// BluntCommand classes
 // ================================================================================
 
 class BluntCommand
 {
 public:
-    BluntCommandType    fType;
     BluntCommand*       fOriginalCommand;
     Boolean             fDelete;
 
-                        BluntCommand (BluntCommandType type);
+                        BluntCommand();
+    virtual             ~BluntCommand() { }
+    virtual void        Process(BluntServer *server) { };
 };
 
 class BluntStartCommand: public BluntCommand
 {
 public:
-                        BluntStartCommand (): BluntCommand (C_START) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntStopCommand: public BluntCommand
 {
 public:
-                        BluntStopCommand (): BluntCommand (C_STOP) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntResetCommand: public BluntCommand
 {
 public:
     Char                fName[64];
-
-                        BluntResetCommand (): BluntCommand (C_RESET) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntConnectionCommand: public BluntCommand
@@ -242,7 +227,8 @@ public:
     // RFCOMM Data
     UByte               fRFCOMMPort;
 
-                        BluntConnectionCommand (): BluntCommand (C_CONNECT), fPSRepMode (1), fPSMode (0) {}
+                        BluntConnectionCommand(): fPSRepMode(1), fPSMode(0) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntNameRequestCommand: public BluntCommand
@@ -252,7 +238,7 @@ public:
     UByte               fPSRepMode;
     UByte               fPSMode;
 
-                        BluntNameRequestCommand (): BluntCommand (C_NAME_REQUEST) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntInquiryCommand: public BluntCommand
@@ -261,23 +247,22 @@ public:
     UByte               fTime;
     UByte               fAmount;
 
-                        BluntInquiryCommand (): BluntCommand (C_INQUIRY) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntInquiryCancelCommand: public BluntCommand
 {
 public:
-                        BluntInquiryCancelCommand (): BluntCommand (C_INQUIRY_CANCEL) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntDisconnectCommand: public BluntCommand
 {
 public:
     TObjectId           fToolPort;
-    Short               fHCIHandle;
     UByte               fBdAddr[6];
 
-                        BluntDisconnectCommand (): BluntCommand (C_DISCONNECT), fHCIHandle (-1) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntInitiatePairingCommand: public BluntCommand
@@ -288,7 +273,7 @@ public:
     UByte               fPSRepMode;
     UByte               fPSMode;
 
-                        BluntInitiatePairingCommand (): BluntCommand (C_INIT_PAIR) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntServiceRequestCommand: public BluntCommand
@@ -299,21 +284,7 @@ public:
     UByte               fPSMode;
     UByte               fLinkKey[16];
 
-                        BluntServiceRequestCommand (): BluntCommand (C_SERVICE_REQUEST) {}
-};
-
-class BluntSetLogLevelCommand: public BluntCommand
-{
-public:
-    Byte                fLevel[5];
-
-                        BluntSetLogLevelCommand (): BluntCommand (C_SET_LOG_LEVEL) {}
-};
-
-class BluntStatusCommand: public BluntCommand
-{
-public:
-                        BluntStatusCommand (): BluntCommand (C_STATUS) {}
+    virtual void        Process(BluntServer *server) override;
 };
 
 class BluntDataCommand: public BluntCommand
@@ -322,17 +293,6 @@ public:
     Short               fHCIHandle;
     Byte                fRFCOMMPort;
     CBufferList         *fData;
-    Handler             *fHandler;
 
-                        BluntDataCommand (): BluntCommand (C_DATA) {}
-};
-
-class BluntLogCommand: public BluntCommand
-{
-public:
-    UByte               fData[MAX_LOG];
-    ULong               fSize;
-
-                        BluntLogCommand (): BluntCommand (C_LOG), fSize (0) {}
-                        BluntLogCommand (UByte *data, ULong size);
+    virtual void        Process(BluntServer *server) override;
 };

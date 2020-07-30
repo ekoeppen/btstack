@@ -67,10 +67,9 @@ unsigned int hal_time_ms()
 void hal_timer_newton_set_timer(btstack_state_t *btstack, uint32_t milliseconds)
 {
     TUPort serverPort(btstack->hal->server_port);
-    TUAsyncMessage *message = new TUAsyncMessage();
-    message->Init(false);
+    TUAsyncMessage message(btstack->hal->timer_message, 0);
     TTime futureTime = GetGlobalTime() + TTime(milliseconds, kMilliseconds);
-    serverPort.Send (message, NULL, 0, kNoTimeout, &futureTime, M_TIMER);
+    serverPort.Send (&message, NULL, 0, kNoTimeout, &futureTime, M_TIMER);
 }
 
 #if defined __cplusplus
