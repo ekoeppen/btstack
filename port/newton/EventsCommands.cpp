@@ -65,6 +65,11 @@ void BluntStartCommand::Process(BluntServer *server)
     server->Start();
 }
 
+void BluntInquiryCommand::Process(BluntServer *server)
+{
+    server->InquiryStart(this);
+}
+
 void BluntStopCommand::Process(BluntServer *server)
 {
     server->Stop();

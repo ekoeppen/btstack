@@ -43,6 +43,15 @@ extern "C" Ref MStart(RefArg inRcvr)
     return NILREF;
 }
 
+extern "C" Ref MInquiryStart(RefArg inRcvr)
+{
+    einstein_here(90, __func__, __LINE__);
+    TUPort serverPort(BluntServer::Port());
+    BluntInquiryCommand cmd;
+    serverPort.Send (&cmd, sizeof(cmd), (TTimeout) kNoTimeout, M_COMMAND);
+    return NILREF;
+}
+
 extern "C" Ref MStop(RefArg inRcvr)
 {
     einstein_here(90, __func__, __LINE__);

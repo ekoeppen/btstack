@@ -146,20 +146,16 @@ void hal_uart_newton_shutdown(void) {
 }
 
 void hal_uart_newton_send_block(btstack_state_t *btstack, const uint8_t * data, uint16_t len){
-    einstein_here(34, __func__, __LINE__);
-    einstein_log(34, __func__, __LINE__, "%d", data[0]);
-    einstein_log(34, __func__, __LINE__, "%d", data[1]);
-    einstein_log(34, __func__, __LINE__, "%d", data[2]);
-    einstein_log(34, __func__, __LINE__, "%d", data[3]);
     TSerialChip *chip = static_cast<TSerialChip*>(btstack->uart->serial_chip);
     for (size_t i = 0; i < len; i++) {
+        einstein_log(34, __func__, __LINE__, "%d", *data);
         chip->PutByte(*data++);
     }
     btstack->uart->block_sent(btstack);
 }
 
 void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *data, uint16_t len){
-    einstein_here(90, __func__, __LINE__);
+    einstein_log(90, __func__, __LINE__, "%d", len);
     btstack->hal->bytes_to_read = data;
     btstack->hal->num_bytes_to_read = len;
     if (btstack->hal->num_bytes_to_read == 0) {

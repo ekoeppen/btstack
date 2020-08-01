@@ -12,9 +12,9 @@
 
 // BTstack features that can be enabled
 #define ENABLE_CLASSIC
-// #define ENABLE_BLE
+#define ENABLE_BLE
 // #define ENABLE_LE_PERIPHERAL
-// #define ENABLE_LE_CENTRAL
+#define ENABLE_LE_CENTRAL
 // #define ENABLE_LOG_DEBUG
 // #define ENABLE_LOG_ERROR
 // #define ENABLE_LOG_INFO
@@ -23,11 +23,6 @@
 
 // BTstack configuration. buffers, sizes, ...
 #define HCI_ACL_PAYLOAD_SIZE 52
-#define MAX_NR_GATT_CLIENTS 1
-#define MAX_NR_HFP_CONNECTIONS 0
-#define MAX_NR_WHITELIST_ENTRIES 1
-#define MAX_NR_SM_LOOKUP_ENTRIES 3
-#define MAX_NR_LE_DEVICE_DB_ENTRIES 0
 
 #endif
 

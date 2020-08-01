@@ -114,7 +114,6 @@ long BluntServer::TaskConstructor()
     const hci_transport_t *transport = hci_transport_h4_instance(fStack, btstack_uart_block_newton_instance());
 
     hci_init(fStack, transport, &config);
-    einstein_break();
     hci_set_link_key_db(fStack, btstack_link_key_db_static_instance());
 
     return noErr;
@@ -217,6 +216,7 @@ void BluntServer::SendData(BluntDataCommand* command)
 void BluntServer::Start()
 {
     einstein_here(90, __func__, __LINE__);
+    hci_set_inquiry_mode(fStack, INQUIRY_MODE_STANDARD);
     hci_power_control(fStack, HCI_POWER_ON);
 }
 
@@ -224,6 +224,13 @@ void BluntServer::Stop()
 {
     einstein_here(90, __func__, __LINE__);
     fEnd = true;
+}
+
+void BluntServer::InquiryStart(BluntInquiryCommand* command)
+{
+    int r;
+    einstein_here(90, __func__, __LINE__);
+    gap_start_scan(fStack);
 }
 
 void BluntServer::InitiatePairing(BluntInitiatePairingCommand* command)

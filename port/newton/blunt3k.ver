@@ -2,6 +2,7 @@ blunt3k_1.0 {
   global:
     MCreate;
     MStart;
+    MInquiryStart;
     MStop;
 
   local:

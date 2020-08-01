@@ -1232,7 +1232,7 @@ void hci_le_advertisements_set_params(uint16_t adv_int_min, uint16_t adv_int_max
  *
  * @note internal use. use gap_random_address_set_mode from gap.h instead.
  */
-void hci_le_set_own_address_type(uint8_t own_address_type);
+void hci_le_set_own_address_type(btstack_state_t *btstack, uint8_t own_address_type);
 
 /**
  * @brief Get Manufactured

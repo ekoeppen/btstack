@@ -271,17 +271,17 @@ int  gap_mitm_protection_required_for_security_level(gap_security_level_t level)
 /**
  * @brief Set parameters for LE Scan
  */
-void gap_set_scan_parameters(uint8_t scan_type, uint16_t scan_interval, uint16_t scan_window);
+void gap_set_scan_parameters(btstack_state_t *btstack, uint8_t scan_type, uint16_t scan_interval, uint16_t scan_window);
 
 /**
  * @brief Start LE Scan
  */
-void gap_start_scan(void);
+void gap_start_scan(btstack_state_t *btstack);
 
 /**
  * @brief Stop LE Scan
  */
-void gap_stop_scan(void);
+void gap_stop_scan(btstack_state_t *btstack);
 
 /**
  * @brief Enable privacy by using random addresses
@@ -359,7 +359,7 @@ void gap_scan_response_set_data(uint8_t scan_response_data_length, uint8_t * sca
  * @param min_ce_length (unit: 0.625ms), default: 10 ms
  * @param max_ce_length (unit: 0.625ms), default: 30 ms
  */
-void gap_set_connection_parameters(uint16_t conn_scan_interval, uint16_t conn_scan_window,
+void gap_set_connection_parameters(btstack_state_t *btstack, uint16_t conn_scan_interval, uint16_t conn_scan_window,
     uint16_t conn_interval_min, uint16_t conn_interval_max, uint16_t conn_latency,
     uint16_t supervision_timeout, uint16_t min_ce_length, uint16_t max_ce_length);
 
@@ -372,7 +372,7 @@ void gap_set_connection_parameters(uint16_t conn_scan_interval, uint16_t conn_sc
  * @param supervision_timeout (unit: 10ms)
  * @returns 0 if ok
  */
-int gap_request_connection_parameter_update(hci_con_handle_t con_handle, uint16_t conn_interval_min,
+int gap_request_connection_parameter_update(btstack_state_t *btstack, hci_con_handle_t con_handle, uint16_t conn_interval_min,
 	uint16_t conn_interval_max, uint16_t conn_latency, uint16_t supervision_timeout);
 
 /**
@@ -384,7 +384,7 @@ int gap_request_connection_parameter_update(hci_con_handle_t con_handle, uint16_
  * @param supervision_timeout (unit: 10ms)
  * @returns 0 if ok
  */
-int gap_update_connection_parameters(hci_con_handle_t con_handle, uint16_t conn_interval_min,
+int gap_update_connection_parameters(btstack_state_t *btstack, hci_con_handle_t con_handle, uint16_t conn_interval_min,
 	uint16_t conn_interval_max, uint16_t conn_latency, uint16_t supervision_timeout);
 
 /**
@@ -419,12 +419,12 @@ void gap_set_max_number_peripheral_connections(btstack_state_t *btstack, int max
 /**
  * @brief Connect to remote LE device
  */
-uint8_t gap_connect(bd_addr_t addr, bd_addr_type_t addr_type);
+uint8_t gap_connect(btstack_state_t *btstack, bd_addr_t addr, bd_addr_type_t addr_type);
 
 /**
  * @brief Cancel connection process initiated by gap_connect
  */
-uint8_t gap_connect_cancel(void);
+uint8_t gap_connect_cancel(btstack_state_t *btstack);
 
 /**
  * @brief Auto Connection Establishment - Start Connecting to device
@@ -432,7 +432,7 @@ uint8_t gap_connect_cancel(void);
  * @param address
  * @returns 0 if ok
  */
-int gap_auto_connection_start(bd_addr_type_t address_typ, bd_addr_t address);
+int gap_auto_connection_start(btstack_state_t *btstack, bd_addr_type_t address_typ, bd_addr_t address);
 
 /**
  * @brief Auto Connection Establishment - Stop Connecting to device
@@ -440,13 +440,13 @@ int gap_auto_connection_start(bd_addr_type_t address_typ, bd_addr_t address);
  * @param address
  * @returns 0 if ok
  */
-int gap_auto_connection_stop(bd_addr_type_t address_typ, bd_addr_t address);
+int gap_auto_connection_stop(btstack_state_t *btstack, bd_addr_type_t address_typ, bd_addr_t address);
 
 /**
  * @brief Auto Connection Establishment - Stop everything
  * @note  Convenience function to stop all active auto connection attempts
  */
-void gap_auto_connection_stop_all(void);
+void gap_auto_connection_stop_all(btstack_state_t *btstack);
 
 /**
  * @brief Set LE PHY
@@ -457,13 +457,13 @@ void gap_auto_connection_stop_all(void);
  * @param phy_options 0 = no preferred coding for Coded, 1 = S=2 coding (500 kbit), 2 = S=8 coding (125 kbit)
  * @returns 0 if ok
  */
-uint8_t gap_le_set_phy(hci_con_handle_t con_handle, uint8_t all_phys, uint8_t tx_phys, uint8_t rx_phys, uint8_t phy_options);
+uint8_t gap_le_set_phy(btstack_state_t *btstack, hci_con_handle_t con_handle, uint8_t all_phys, uint8_t tx_phys, uint8_t rx_phys, uint8_t phy_options);
 
 /**
  * @brief Get connection interval
  * @return connection interval, otherwise 0 if error
  */
-uint16_t gap_le_connection_interval(hci_con_handle_t connection_handle);
+uint16_t gap_le_connection_interval(btstack_state_t *btstack, hci_con_handle_t connection_handle);
 
 /**
  *
@@ -471,28 +471,28 @@ uint16_t gap_le_connection_interval(hci_con_handle_t connection_handle);
  * @param con_handle
  * @return 0 if not encrypted, 7-16 otherwise
  */
-int gap_encryption_key_size(hci_con_handle_t con_handle);
+int gap_encryption_key_size(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * @brief Get authentication property.
  * @param con_handle
  * @return 1 if bonded with OOB/Passkey (AND MITM protection)
  */
-int gap_authenticated(hci_con_handle_t con_handle);
+int gap_authenticated(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * @brief Get secure connection property
  * @param con_handle
  * @return 1 if bonded usiung LE Secure Connections
  */
-int gap_secure_connection(hci_con_handle_t con_handle);
+int gap_secure_connection(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 /**
  * @brief Queries authorization state.
  * @param con_handle
  * @return authorization_state for the current session
  */
-authorization_state_t gap_authorization_state(hci_con_handle_t con_handle);
+authorization_state_t gap_authorization_state(btstack_state_t *btstack, hci_con_handle_t con_handle);
 
 // Classic
 
@@ -659,7 +659,7 @@ uint8_t gap_sniff_mode_exit(btstack_state_t *btstack, hci_con_handle_t con_handl
 /**
  * @brief Get own addr type and address used for LE
  */
-void gap_le_get_own_address(uint8_t * addr_type, bd_addr_t addr);
+void gap_le_get_own_address(btstack_state_t *btstack, uint8_t * addr_type, bd_addr_t addr);
 
 
 /**

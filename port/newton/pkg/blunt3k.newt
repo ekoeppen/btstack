@@ -3,8 +3,11 @@ mainView := {
     title: "Blunt 3k",
     appSymbol: '|Blunt 3k:40Hz|,
     viewJustify: vjParentTopV + vjParentLeftH,
-    viewBounds: {left: 32, top: 32, right: 120, bottom: 120},
+    viewBounds: {left: 32, top: 32, right: 120, bottom: 148},
     MCreate: blunt3k.MCreate,
+    MStart: blunt3k.MStart,
+    MInquiryStart: blunt3k.MInquiryStart,
+    MStop: blunt3k.MStop,
 
     stepChildren: [
         {
@@ -13,6 +16,30 @@ mainView := {
             viewBounds: {left: 8, top: 8, right: 80, bottom: 24},
             buttonClickScript: func() begin
                 :MCreate();
+            end,
+        },
+        {
+            _proto: protoTextButton,
+            text: "Start",
+            viewBounds: {left: 8, top: 32, right: 80, bottom: 48},
+            buttonClickScript: func() begin
+                :MStart();
+            end,
+        },
+        {
+            _proto: protoTextButton,
+            text: "Search",
+            viewBounds: {left: 8, top: 56, right: 80, bottom: 72},
+            buttonClickScript: func() begin
+                :MInquiryStart();
+            end,
+        },
+        {
+            _proto: protoTextButton,
+            text: "Stop",
+            viewBounds: {left: 8, top: 80, right: 80, bottom: 96},
+            buttonClickScript: func() begin
+                :MStop();
             end,
         },
     ]
