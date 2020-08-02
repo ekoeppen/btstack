@@ -11,6 +11,7 @@
 #include "btstack_run_loop_newton.h"
 #include "btstack_uart_block_newton.h"
 #include "hal_newton.h"
+#include "hal_uart_newton.h"
 #include "bluetooth_company_id.h"
 #include "classic/btstack_link_key_db_static.h"
 #include "log.h"
@@ -173,8 +174,7 @@ void BluntServer::HandleData()
 {
     if (fStack->uart->block_received) {
         einstein_here(90, __func__, __LINE__);
-        fStack->uart->block_received(fStack);
-        btstack_run_loop_embedded_execute_once(fStack);
+        hal_uart_newton_process_received_data(fStack);
     }
 }
 

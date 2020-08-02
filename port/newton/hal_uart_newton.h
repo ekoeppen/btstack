@@ -75,6 +75,10 @@ void hal_uart_newton_send_block(btstack_state_t *btstack, const uint8_t *buffer,
  */
 void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *buffer, uint16_t len);
 
+/**
+ * @brief Copy received data for further processing
+ */
+void hal_uart_newton_process_received_data(btstack_state_t *btstack);
 #if defined __cplusplus
 }
 #endif

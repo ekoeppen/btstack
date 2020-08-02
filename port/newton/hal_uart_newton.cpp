@@ -80,20 +80,6 @@ void RxCAvailIntHandler(void* context)
             btstack->hal->read_buffer_head = 0;
         }
     }
-    if (btstack->hal->num_bytes_to_read == 0) {
-        return;
-    }
-    while (btstack->hal->num_bytes_to_read > 0) {
-        uint8_t b = btstack->hal->read_buffer[btstack->hal->read_buffer_tail];
-        *btstack->hal->bytes_to_read = b;
-        ++btstack->hal->bytes_to_read;
-        if (btstack->hal->read_buffer_tail < sizeof(btstack->hal->read_buffer)) {
-            ++btstack->hal->read_buffer_tail;
-        } else {
-            btstack->hal->read_buffer_tail = 0;
-        }
-        --btstack->hal->num_bytes_to_read;
-    }
     TUPort serverPort(btstack->hal->server_port);
     SendForInterrupt(serverPort, btstack->hal->int_message, 0, NULL, 0, M_DATA);
 }
@@ -158,6 +144,11 @@ void hal_uart_newton_receive_block(btstack_state_t *btstack, uint8_t *data, uint
     einstein_log(90, __func__, __LINE__, "%d", len);
     btstack->hal->bytes_to_read = data;
     btstack->hal->num_bytes_to_read = len;
+    hal_uart_newton_process_received_data(btstack);
+}
+
+void hal_uart_newton_process_received_data(btstack_state_t *btstack)
+{
     if (btstack->hal->num_bytes_to_read == 0) {
         return;
     }
