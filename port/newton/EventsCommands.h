@@ -231,16 +231,6 @@ public:
     virtual void        Process(BluntServer *server) override;
 };
 
-class BluntNameRequestCommand: public BluntCommand
-{
-public:
-    UByte               fBdAddr[6];
-    UByte               fPSRepMode;
-    UByte               fPSMode;
-
-    virtual void        Process(BluntServer *server) override;
-};
-
 class BluntInquiryCommand: public BluntCommand
 {
 public:

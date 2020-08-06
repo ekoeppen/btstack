@@ -327,13 +327,8 @@ char * uuid128_to_str(const uint8_t * uuid){
 }
 #endif
 
-#if 0 // :TODO:
-static char bd_addr_to_str_buffer[6*3];  // 12:45:78:01:34:67\0
-char * bd_addr_to_str(const bd_addr_t addr){
-    // orig code
-    // sprintf(bd_addr_to_str_buffer, "%02x:%02x:%02x:%02x:%02x:%02x", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-    // sprintf-free code
-    char * p = bd_addr_to_str_buffer;
+char * bd_addr_to_str(char *buffer, const bd_addr_t addr){
+    char * p = buffer;
     int i;
     for (i = 0; i < 6 ; i++) {
         uint8_t byte = addr[i];
@@ -342,24 +337,20 @@ char * bd_addr_to_str(const bd_addr_t addr){
         *p++ = ':';
     }
     *--p = 0;
-    return (char *) bd_addr_to_str_buffer;
+    return buffer;
 }
-#else
-char * bd_addr_to_str(const bd_addr_t addr){
-    return "xx:xx:xx:xx:xx:xx:xx";
-}
-#endif
 
 void btstack_replace_bd_addr_placeholder(uint8_t * buffer, uint16_t size, const bd_addr_t address){
     const int bd_addr_string_len = 17;
     uint16_t i = 0;
+    char addr[3 * 6];
     while ((i + bd_addr_string_len) <= size){
         if (memcmp(&buffer[i], "00:00:00:00:00:00", bd_addr_string_len)) {
             i++;
             continue;
         }
         // set address
-        (void)memcpy(&buffer[i], bd_addr_to_str(address), bd_addr_string_len);
+        (void)memcpy(&buffer[i], bd_addr_to_str(addr, address), bd_addr_string_len);
         i += bd_addr_string_len;
     }
 }

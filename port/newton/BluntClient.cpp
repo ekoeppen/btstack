@@ -79,15 +79,6 @@ void BluntClient::CancelDiscover ()
     fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
 }
 
-void BluntClient::NameRequest (UByte* bdAddr, ULong psRepMode, ULong psMode)
-{
-    BluntNameRequestCommand command;
-    memcpy (command.fBdAddr, bdAddr, 6);
-    command.fPSRepMode = psRepMode;
-    command.fPSMode = psMode;
-    fServerPort.Send (&command, sizeof (command), kNoTimeout, M_COMMAND);
-}
-
 void BluntClient::Pair (UByte* bdAddr, Char *PIN, ULong psRepMode, ULong psMode)
 {
     BluntInitiatePairingCommand command;

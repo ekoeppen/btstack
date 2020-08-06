@@ -73,8 +73,56 @@ void heartbeat_handler(btstack_state_t *btstack, btstack_timer_source_t *ts){
 
 void packet_handler(btstack_state_t *btstack, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     if (packet_type != HCI_EVENT_PACKET) return;
-    einstein_log(31, __func__, __LINE__, "%d", packet_type);
+
+    einstein_log(31, __func__, __LINE__, "%d %d", packet_type,
+            hci_event_packet_get_type(packet));
     switch (hci_event_packet_get_type(packet)){
+        case GAP_EVENT_ADVERTISING_REPORT:
+            {
+                bd_addr_t address;
+                char buffer[3 * 6];
+                gap_event_advertising_report_get_address(packet, address);
+                uint8_t event_type = gap_event_advertising_report_get_advertising_event_type(packet);
+                uint8_t address_type = gap_event_advertising_report_get_address_type(packet);
+                int8_t rssi = gap_event_advertising_report_get_rssi(packet);
+                uint8_t length = gap_event_advertising_report_get_data_length(packet);
+                const uint8_t * data = gap_event_advertising_report_get_data(packet);
+                einstein_log(33, __func__, __LINE__,
+                        "Advertisement event: evt-type %u, addr-type %u, addr %s, rssi %d, data[%u] ",
+                        event_type, address_type, bd_addr_to_str(buffer, address), rssi, length);
+            }
+            break;
+        case GAP_EVENT_INQUIRY_RESULT:
+            {
+                bd_addr_t address;
+                char buffer[3 * 6];
+                gap_event_inquiry_result_get_bd_addr(packet, address);
+                einstein_log(33, __func__, __LINE__, "Device found: %s ",
+                        bd_addr_to_str(buffer, address));
+                einstein_log(33, __func__, __LINE__, "  COD: 0x%06x",
+                        (unsigned int) gap_event_inquiry_result_get_class_of_device(packet));
+                if (gap_event_inquiry_result_get_rssi_available(packet)){
+                    einstein_log(33, __func__, __LINE__, "  rssi %d dBm",
+                            (int8_t) gap_event_inquiry_result_get_rssi(packet));
+                }
+                if (gap_event_inquiry_result_get_name_available(packet)){
+                    char name_buffer[240];
+                    int name_len = gap_event_inquiry_result_get_name_len(packet);
+                    memcpy(name_buffer, gap_event_inquiry_result_get_name(packet), name_len);
+                    name_buffer[name_len] = 0;
+                    einstein_log(33, __func__, __LINE__, "  name '%s'", name_buffer);
+                }
+            }
+            break;
+        case HCI_EVENT_INQUIRY_COMPLETE:
+            einstein_here(31, __func__, __LINE__);
+            break;
+        case GAP_EVENT_INQUIRY_COMPLETE:
+            einstein_here(31, __func__, __LINE__);
+            break;
+        case HCI_EVENT_REMOTE_NAME_REQUEST_COMPLETE:
+            einstein_here(31, __func__, __LINE__);
+            break;
         case BTSTACK_EVENT_STATE:
             if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING) {
                 einstein_here(31, __func__, __LINE__);
@@ -230,7 +278,8 @@ void BluntServer::InquiryStart(BluntInquiryCommand* command)
 {
     int r;
     einstein_here(90, __func__, __LINE__);
-    gap_start_scan(fStack);
+    // gap_start_scan(fStack);
+    gap_inquiry_start(fStack, 10);
 }
 
 void BluntServer::InitiatePairing(BluntInitiatePairingCommand* command)

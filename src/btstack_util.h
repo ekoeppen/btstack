@@ -228,7 +228,7 @@ char * uuid128_to_str(const uint8_t * uuid);
  * @note uses fixed global buffer
  * @return pointer to Bluetooth address string
  */
-char * bd_addr_to_str(const bd_addr_t addr);
+char * bd_addr_to_str(char *buffer, const bd_addr_t addr);
 
 /**
  * @brief Replace address placeholder '00:00:00:00:00:00' with Bluetooth address
