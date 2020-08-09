@@ -31,7 +31,7 @@ public:
     void                SendLinkKeyInfo (BluntLinkKeyNotificationEvent* event);
     void                SendServiceInfo (BluntServiceResultEvent* event);
 
-    void                ResetComplete();
+    void                ResetComplete(NewtonErr result);
 
     RefStruct*          fBlunt;
     TUPort              fServerPort;

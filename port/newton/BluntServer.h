@@ -58,9 +58,7 @@ public:
     void                    HandleData();
     void                    HandleTimer();
     void                    HandleCommand(BluntCommand* command);
-    void                    HandleEvent(BluntEvent *event);
 
-    void                    HandleTimer(BluntTimerEvent *event);
     void                    InquiryStart(BluntInquiryCommand* command);
     void                    InitiatePairing(BluntInitiatePairingCommand* command);
     void                    InitiateServiceRequest(BluntServiceRequestCommand* command);

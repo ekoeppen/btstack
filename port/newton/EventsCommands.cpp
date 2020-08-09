@@ -14,9 +14,7 @@ BluntEvent::BluntEvent(BluntEventType type, NewtonErr result)
 
 void BluntResetCompleteEvent::Process(BluntClient *client)
 {
-    if (fResult == noErr) {
-        client->ResetComplete();
-    }
+    client->ResetComplete(fResult);
 }
 
 BluntInquiryResultEvent::BluntInquiryResultEvent(NewtonErr result):

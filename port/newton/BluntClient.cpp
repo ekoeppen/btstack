@@ -34,7 +34,7 @@ void BluntClient::AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event)
     einstein_log (CYAN, __func__, __LINE__, "%d", ((BluntEvent*) event)->fType);
     switch (((BluntEvent*) event)->fType) {
         case E_RESET_COMPLETE:
-            NSSendIfDefined (*fBlunt, SYM (MResetCallback));
+            reinterpret_cast<BluntResetCompleteEvent*>(event)->Process(this);
             break;
         case E_INQUIRY_RESULT:
             SendInquiryInfo ((BluntInquiryResultEvent *) event);
@@ -188,7 +188,8 @@ void BluntClient::SendServiceInfo (BluntServiceResultEvent* event)
     NSSendIfDefined (*fBlunt, SYM (MServicesCallback), service);
 }
 
-void BluntClient::ResetComplete()
+void BluntClient::ResetComplete(NewtonErr result)
 {
     einstein_here(CYAN, __func__, __LINE__);
+    NSSendIfDefined (*fBlunt, SYM (MResetCallback));
 }

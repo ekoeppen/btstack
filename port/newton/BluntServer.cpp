@@ -208,8 +208,7 @@ void BluntServer::TaskMain()
                 HandleCommand((BluntCommand *) fMessage);
                 break;
             case M_EVENT:
-                HandleEvent((BluntEvent*) fMessage);
-//              delete(BluntTimerEvent*) fMessage;
+                einstein_here(31, __func__, __LINE__);
                 break;
             case M_TIMER:
                 HandleTimer();
@@ -237,27 +236,6 @@ void BluntServer::HandleCommand(BluntCommand* command)
     einstein_here(31, __func__, __LINE__);
     command->Process(this);
     if (command->fDelete) delete command->fOriginalCommand;
-}
-
-void BluntServer::HandleEvent(BluntEvent *event)
-{
-    einstein_log(31, __func__, __LINE__, "%d", event->fType);
-    switch (event->fType) {
-        case E_TIMER:
-            HandleTimer(reinterpret_cast<BluntTimerEvent*>(event));
-            break;
-        default:
-            einstein_here(32, __func__, __LINE__);
-            BluntEvent e(E_GENERIC_EVENT, noErr);
-            fNewtPort->Send(&e, sizeof(e));
-            break;
-    }
-}
-
-void BluntServer::HandleTimer(BluntTimerEvent *event)
-{
-    btstack_run_loop_embedded_execute_once(fStack);
-    delete event->fOriginalEvent;
 }
 
 void BluntServer::SendData(BluntDataCommand* command)
