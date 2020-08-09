@@ -126,10 +126,9 @@ void packet_handler(btstack_state_t *btstack, uint8_t packet_type, uint16_t chan
         case BTSTACK_EVENT_STATE:
             if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING) {
                 einstein_here(31, __func__, __LINE__);
-                TUAsyncMessage *message = new TUAsyncMessage();
-                message->Init(false);
-                TUPort serverPort(BluntServer::Port());
-                serverPort.Send(message,(void *) NULL, 0,(TTimeout) kNoTimeout, NULL, M_EVENT);
+                TUPort *newtPort = GetNewtTaskPort();
+                BluntResetCompleteEvent e(noErr);
+                newtPort->Send(&e, sizeof(e));
             }
             break;
         case HCI_EVENT_COMMAND_COMPLETE:
@@ -156,6 +155,7 @@ long BluntServer::TaskConstructor()
     TUNameServer nameServer;
     fPort.Init();
     nameServer.RegisterName("BluntServer", "TUPort", fPort.fId, 0);
+    fNewtPort = GetNewtTaskPort();
     fStack = static_cast<btstack_state_t *>(calloc(1, sizeof(btstack_state_t)));
     btstack_hal_init(fStack);
     fStack->hal->server_port = fPort.fId;
@@ -185,6 +185,7 @@ void BluntServer::TaskMain()
 
     fIntMessage.Init(false);
     fTimerMessage.Init(false);
+    fServerMessage.Init(false);
     fStack->hal->int_message = fIntMessage.GetMsgId();
     fStack->hal->timer_message = fTimerMessage.GetMsgId();
     hci_event_callback_registration.callback = &packet_handler;
@@ -246,6 +247,9 @@ void BluntServer::HandleEvent(BluntEvent *event)
             HandleTimer(reinterpret_cast<BluntTimerEvent*>(event));
             break;
         default:
+            einstein_here(32, __func__, __LINE__);
+            BluntEvent e(E_GENERIC_EVENT, noErr);
+            fNewtPort->Send(&e, sizeof(e));
             break;
     }
 }
@@ -290,13 +294,6 @@ void BluntServer::InitiatePairing(BluntInitiatePairingCommand* command)
 void BluntServer::InitiateServiceRequest(BluntServiceRequestCommand* command)
 {
     einstein_here(90, __func__, __LINE__);
-}
-
-void BluntServer::SendEvent(BluntEvent* event)
-{
-    einstein_here(90, __func__, __LINE__);
-    TUPort* port = GetNewtTaskPort();
-    port->Send(event,(void *) event, event->GetSizeOf());
 }
 
 BluntServer *BluntServer::New()

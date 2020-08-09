@@ -17,6 +17,7 @@
 #include "hci_dump.h"
 #include "log.h"
 #include "BluntServer.h"
+#include "BluntClient.h"
 
 #include <NewtonScript.h>
 #include <Objects.h>
@@ -30,6 +31,7 @@ extern "C" Ref MCreate(RefArg inRcvr)
 {
     einstein_here(90, __func__, __LINE__);
     BluntServer *server = BluntServer::New();
+    BluntClient *client = BluntClient::New(inRcvr, BluntServer::Port());
     server->StartTask();
     return NILREF;
 }

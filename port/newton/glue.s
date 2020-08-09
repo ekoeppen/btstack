@@ -16,3 +16,11 @@ __vt__BluntServer:
     b _ZN11BluntServer15TaskConstructorEv
     b _ZN11BluntServer14TaskDestructorEv
     b _ZN11BluntServer8TaskMainEv
+
+    .global __vt__BluntClient
+__vt__BluntClient:
+    b _ZN11BluntClientD1Ev
+    b _ZN14TAEventHandler11AETestEventEP7TAEvent
+    b _ZN11BluntClient13AEHandlerProcEP10TUMsgTokenPmP7TAEvent
+    b _ZN14TAEventHandler16AECompletionProcEP10TUMsgTokenPmP7TAEvent
+    b _ZN14TAEventHandler8IdleProcEP10TUMsgTokenPmP7TAEvent

@@ -6,6 +6,7 @@
 #include "Definitions.h"
 
 class BluntServer;
+class BluntClient;
 
 enum BluntEventType {
     E_BLUNT_EVENT,                      // 0
@@ -47,7 +48,7 @@ class CBufferList;
 // BluntEvent classes
 // ================================================================================
 
-class BluntEvent: public TAEvent, public TUAsyncMessage
+class BluntEvent: public TAEvent
 {
 public:
     BluntEventType  fType;
@@ -56,8 +57,7 @@ public:
     Boolean         fDelete;
 
                     BluntEvent(BluntEventType type, NewtonErr result);
-    virtual         ~BluntEvent();
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
+    void            Process(BluntClient *client) { };
 };
 
 class BluntTimerEvent: public BluntEvent
@@ -68,13 +68,14 @@ public:
 
                     BluntTimerEvent(NewtonErr result, Handler *handler, void *userData):
                         BluntEvent(E_TIMER_EVENT, result), fHandler(handler), fUserData(userData) {}
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
+    void            Process(BluntClient *client) { };
 };
 
 class BluntResetCompleteEvent: public BluntEvent
 {
 public:
                     BluntResetCompleteEvent(NewtonErr result): BluntEvent(E_RESET_COMPLETE, result) {}
+    void            Process(BluntClient *client);
 };
 
 class BluntInquiryResultEvent: public BluntEvent
@@ -88,7 +89,6 @@ public:
     UByte           fClockOffset[2];
 
                     BluntInquiryResultEvent(NewtonErr result);
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntNameRequestResultEvent: public BluntEvent
@@ -98,7 +98,6 @@ public:
     UByte           fBdAddr[6];
 
                     BluntNameRequestResultEvent(NewtonErr result, UChar* name, UByte* addr);
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntLinkKeyNotificationEvent: public BluntEvent
@@ -108,7 +107,6 @@ public:
     UByte           fLinkKey[16];
 
                     BluntLinkKeyNotificationEvent(NewtonErr result, UByte* addr, UByte* key);
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntServiceResultEvent: public BluntEvent
@@ -119,7 +117,6 @@ public:
     Byte            fServicePort;
 
                     BluntServiceResultEvent(NewtonErr result): BluntEvent(E_SERVICE_RESULT, result) {}
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntCommandCompleteEvent: public BluntEvent
@@ -128,7 +125,6 @@ public:
     ULong           fStatus;
 
                     BluntCommandCompleteEvent(NewtonErr result, ULong s);
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntConnectionCompleteEvent: public BluntEvent
@@ -141,14 +137,12 @@ public:
     Handler         *fHandler;
 
                     BluntConnectionCompleteEvent(NewtonErr result);
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntDisconnectCompleteEvent: public BluntEvent
 {
 public:
                     BluntDisconnectCompleteEvent(NewtonErr result);
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntDataEvent: public BluntEvent
@@ -161,7 +155,6 @@ public:
 
                     BluntDataEvent(NewtonErr result, UByte *data, Long len, Handler *handler):
                         BluntEvent(E_DATA, result), fDelete(false), fData(data), fLength(len), fHandler(handler) {}
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 class BluntDataSentEvent: public BluntEvent
@@ -171,7 +164,6 @@ public:
 
                     BluntDataSentEvent(NewtonErr result, Long len):
                         BluntEvent(E_DATA_SENT, result), fAmount(len) {}
-    virtual ULong   GetSizeOf(void) { return sizeof(*this); }
 };
 
 // ================================================================================

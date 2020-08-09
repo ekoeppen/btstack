@@ -28,8 +28,10 @@ public:
     Boolean                 fEnd;
 
     TUPort                  fPort;
+    TUPort                  *fNewtPort;
     TUAsyncMessage          fIntMessage;
     TUAsyncMessage          fTimerMessage;
+    TUAsyncMessage          fServerMessage;
 
     UByte                   fMessage[MAX_MESSAGE];
 
@@ -74,7 +76,6 @@ public:
     void                    Start();
     void                    Stop();
 
-    void                    SendEvent(BluntEvent* event);
     void                    SetTimer(Handler *handler, int milliSecondDelay, void *userData = NULL);
 
     static TObjectId        Port(void);

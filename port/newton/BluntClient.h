@@ -12,9 +12,9 @@ public:
                         BluntClient (RefArg blunt, TObjectId serverPort);
                         ~BluntClient ();
 
-    void                AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event);
-    void                AECompletionProc (TUMsgToken* token, ULong* size, TAEvent* event);
-    void                IdleProc (TUMsgToken* token, ULong* size, TAEvent* event);
+    static BluntClient* New(RefArg blunt, TObjectId server);
+
+    void                AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event) override;
 
     void                Reset (Char* name);
     void                Discover (UByte time, UByte amount);
@@ -30,6 +30,8 @@ public:
     void                SendNameRequestInfo (BluntNameRequestResultEvent* event);
     void                SendLinkKeyInfo (BluntLinkKeyNotificationEvent* event);
     void                SendServiceInfo (BluntServiceResultEvent* event);
+
+    void                ResetComplete();
 
     RefStruct*          fBlunt;
     TUPort              fServerPort;

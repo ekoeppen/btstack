@@ -8,6 +8,9 @@ mainView := {
     MStart: blunt3k.MStart,
     MInquiryStart: blunt3k.MInquiryStart,
     MStop: blunt3k.MStop,
+    MResetCallback: func() begin
+        :Notify(kNotifyQAlert, "Blunt", "Reset complete");
+    end,
 
     stepChildren: [
         {
@@ -47,6 +50,6 @@ mainView := {
 
 {
     app: '|Blunt 3k:40Hz|,
-    text: "Blunt 3k!",
+    text: "Blunt 3k",
     theForm: mainView,
 }

@@ -3,11 +3,22 @@
 #include <string.h>
 #include "NSandDDKIncludes.h"
 #include "EventsCommands.h"
+#include "log.h"
 #include "BluntClient.h"
+
+extern ULong *__vt__BluntClient;
+
+BluntClient *BluntClient::New(RefArg blunt, TObjectId server)
+{
+    einstein_here (31, __func__, __LINE__);
+    BluntClient *client = new BluntClient(blunt, server);
+    *(ULong ***) client = &__vt__BluntClient;
+    return client;
+}
 
 BluntClient::BluntClient (RefArg blunt, TObjectId server)
 {
-    LOG (31, "BluntClient::BluntClient\n");
+    einstein_here (31, __func__, __LINE__);
     Init (kBluntEventId, kBluntEventClass);
     fBlunt = new RefStruct (blunt);
     fServerPort = server;
@@ -20,10 +31,9 @@ BluntClient::~BluntClient ()
 
 void BluntClient::AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event)
 {
-    LOG (31, "BluntClient::AEHandlerProc %08x\n", event);
+    einstein_log (CYAN, __func__, __LINE__, "%d", ((BluntEvent*) event)->fType);
     switch (((BluntEvent*) event)->fType) {
         case E_RESET_COMPLETE:
-            LOG (31, "  Reset complete\n");
             NSSendIfDefined (*fBlunt, SYM (MResetCallback));
             break;
         case E_INQUIRY_RESULT:
@@ -39,17 +49,6 @@ void BluntClient::AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event)
             SendServiceInfo ((BluntServiceResultEvent *) event);
             break;
     }
-    delete ((BluntEvent*) event)->fOriginalEvent;
-}
-
-void BluntClient::AECompletionProc (TUMsgToken* token, ULong* size, TAEvent* event)
-{
-    LOG (31, "BluntClient::AECompletionProc %08x\n", event);
-}
-
-void BluntClient::IdleProc (TUMsgToken* token, ULong* size, TAEvent* event)
-{
-    LOG (31, "BluntClient::AEIdlerProc\n");
 }
 
 void BluntClient::Stop ()
@@ -121,7 +120,7 @@ void BluntClient::SendInquiryInfo (BluntInquiryResultEvent* event)
     RefVar device;
     RefVar addr;
 
-    LOG (31, "BluntClient::SendInquiryInfo %d\n", event->fResult);
+    einstein_log (31, __func__, __LINE__, "BluntClient::SendInquiryInfo %d\n", event->fResult);
     if (event->fResult == noErr) {
         device = AllocateFrame ();
         addr = AllocateBinary (SYM (binary), 6);
@@ -144,7 +143,7 @@ void BluntClient::SendNameRequestInfo (BluntNameRequestResultEvent* event)
 {
     RefVar addr;
 
-    LOG (31, "BluntClient::SendNameRequestInfo (%s)\n", event->fName);
+    einstein_log (31, __func__, __LINE__, "BluntClient::SendNameRequestInfo (%s)\n", event->fName);
     addr = AllocateBinary (SYM (binary), 6);
     WITH_LOCKED_BINARY(addr, a)
     memcpy (a, event->fBdAddr, 6);
@@ -157,7 +156,7 @@ void BluntClient::SendLinkKeyInfo (BluntLinkKeyNotificationEvent* event)
     RefVar addr;
     RefVar key;
 
-    LOG (31, "BluntClient::SendLinkKeyInfo\n");
+    einstein_log (31, __func__, __LINE__, "BluntClient::SendLinkKeyInfo\n");
     addr = AllocateBinary (SYM (binary), 6);
     key = AllocateBinary (SYM (binary), 16);
     WITH_LOCKED_BINARY(addr, a)
@@ -174,7 +173,7 @@ void BluntClient::SendServiceInfo (BluntServiceResultEvent* event)
     RefVar service;
     RefVar addr;
 
-    LOG (31, "BluntClient::SendServiceInfo %d\n", event->fResult);
+    einstein_log (31, __func__, __LINE__, "BluntClient::SendServiceInfo %d\n", event->fResult);
     service = AllocateFrame ();
     SetFrameSlot (service, SYM (fResult), MAKEINT (event->fResult));
     if (event->fResult == noErr) {
@@ -187,4 +186,9 @@ void BluntClient::SendServiceInfo (BluntServiceResultEvent* event)
         SetFrameSlot (service, SYM (fPort), MAKEINT (event->fServicePort));
     }
     NSSendIfDefined (*fBlunt, SYM (MServicesCallback), service);
+}
+
+void BluntClient::ResetComplete()
+{
+    einstein_here(CYAN, __func__, __LINE__);
 }

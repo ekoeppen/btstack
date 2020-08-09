@@ -1,19 +1,22 @@
 #include "EventsCommands.h"
 #include "BluntServer.h"
+#include "BluntClient.h"
 
 BluntEvent::BluntEvent(BluntEventType type, NewtonErr result)
 {
     fAEventID = kBluntEventId;
     fAEventClass = kBluntEventClass;
-    Init();
     fOriginalEvent = this;
     fType = type;
     fResult = result;
-    fDelete = true;
+    fDelete = false;
 }
 
-BluntEvent::~BluntEvent()
+void BluntResetCompleteEvent::Process(BluntClient *client)
 {
+    if (fResult == noErr) {
+        client->ResetComplete();
+    }
 }
 
 BluntInquiryResultEvent::BluntInquiryResultEvent(NewtonErr result):

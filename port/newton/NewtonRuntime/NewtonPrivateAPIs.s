@@ -62,4 +62,12 @@ New__\class\()Fv:
     JT _ZN11TUTaskWorldC2Ev, 01BCC670
     JT _ZN11TUTaskWorld9StartTaskEhhmmmm, 01BDCE4C
     JT _ZN14TUAsyncMessageC1Emm, 01BCD6A8
+    JT _ZN14TUAsyncMessageC2Ev, 01BCD6AC
+    JT _ZN14TAEventHandlerC2Ev, 01BE4208
+    JT _Z15NSSendIfDefinedRK6RefVarS1_, 01C03198
+    JT _Z15NSSendIfDefinedRK6RefVarS1_S1_, 01C0319C
+    JT _Z15NSSendIfDefinedRK6RefVarS1_S1_S1_, 01C031A0
+    JT _ZN8TUObject10CopyObjectEm, 01BD0848
+    JT _ZN7TAEventC1Ev, 01BE4238
+    JT SMemMsgMsgDoneSWI, 003AE4A0
     JT _ZdlPvj, 00318F28
