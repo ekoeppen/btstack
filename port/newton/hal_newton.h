@@ -16,6 +16,7 @@ typedef struct btstack_hal_state {
     uint32_t server_port;
     uint32_t int_message;
     uint32_t timer_message;
+    void *server;
 } btstack_hal_state_t;
 
 void btstack_hal_init(btstack_state_t *btstack);

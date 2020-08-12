@@ -31,7 +31,6 @@ public:
     TUPort                  *fNewtPort;
     TUAsyncMessage          fIntMessage;
     TUAsyncMessage          fTimerMessage;
-    TUAsyncMessage          fServerMessage;
 
     UByte                   fMessage[MAX_MESSAGE];
 
@@ -54,6 +53,8 @@ public:
     Byte                    fNumQueriedServices;
 
     NewtonErr               Initialize(ULong location, ULong driver, ULong speed, Long logLevel);
+
+    void                    HCIPacketHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 
     void                    HandleData();
     void                    HandleTimer();

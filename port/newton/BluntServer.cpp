@@ -62,18 +62,47 @@ static hci_transport_config_uart_t config = {
     NULL,
 };
 
-void heartbeat_handler(btstack_state_t *btstack, btstack_timer_source_t *ts){
-    einstein_here(90, __func__, __LINE__);
-    /*
-    btstack_run_loop_set_timer(btstack, ts, HEARTBEAT_PERIOD_MS);
-    btstack_run_loop_add_timer(btstack, ts);
-    */
-    btstack->run_loop->exit = 1;
-}
-
 void packet_handler(btstack_state_t *btstack, uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     if (packet_type != HCI_EVENT_PACKET) return;
+    reinterpret_cast<BluntServer*>(btstack->hal->server)->HCIPacketHandler(packet_type, channel, packet, size);
+}
 
+extern ULong *__vt__BluntServer;
+
+ULong BluntServer::GetSizeOf()
+{
+    return sizeof(BluntServer);
+}
+
+long BluntServer::TaskConstructor()
+{
+    einstein_here(90, __func__, __LINE__);
+    TUNameServer nameServer;
+    fPort.Init();
+    nameServer.RegisterName("BluntServer", "TUPort", fPort.fId, 0);
+    fNewtPort = GetNewtTaskPort();
+    fStack = static_cast<btstack_state_t *>(calloc(1, sizeof(btstack_state_t)));
+    btstack_hal_init(fStack);
+    fStack->hal->server = this;
+    fStack->hal->server_port = fPort.fId;
+    btstack_run_loop_init(fStack, btstack_run_loop_embedded_get_instance());
+    const hci_transport_t *transport = hci_transport_h4_instance(fStack, btstack_uart_block_newton_instance());
+
+    hci_init(fStack, transport, &config);
+    hci_set_link_key_db(fStack, btstack_link_key_db_static_instance());
+
+    return noErr;
+}
+
+void BluntServer::TaskDestructor()
+{
+    einstein_here(90, __func__, __LINE__);
+    TUNameServer nameServer;
+    nameServer.UnRegisterName("BluntServer", "TUPort");
+}
+
+void BluntServer::HCIPacketHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
+{
     einstein_log(31, __func__, __LINE__, "%d %d", packet_type,
             hci_event_packet_get_type(packet));
     switch (hci_event_packet_get_type(packet)){
@@ -142,57 +171,19 @@ void packet_handler(btstack_state_t *btstack, uint8_t packet_type, uint16_t chan
     }
 }
 
-extern ULong *__vt__BluntServer;
-
-ULong BluntServer::GetSizeOf()
-{
-    return sizeof(BluntServer);
-}
-
-long BluntServer::TaskConstructor()
-{
-    einstein_here(90, __func__, __LINE__);
-    TUNameServer nameServer;
-    fPort.Init();
-    nameServer.RegisterName("BluntServer", "TUPort", fPort.fId, 0);
-    fNewtPort = GetNewtTaskPort();
-    fStack = static_cast<btstack_state_t *>(calloc(1, sizeof(btstack_state_t)));
-    btstack_hal_init(fStack);
-    fStack->hal->server_port = fPort.fId;
-    btstack_run_loop_init(fStack, btstack_run_loop_embedded_get_instance());
-    const hci_transport_t *transport = hci_transport_h4_instance(fStack, btstack_uart_block_newton_instance());
-
-    hci_init(fStack, transport, &config);
-    hci_set_link_key_db(fStack, btstack_link_key_db_static_instance());
-
-    return noErr;
-}
-
-void BluntServer::TaskDestructor()
-{
-    einstein_here(90, __func__, __LINE__);
-    TUNameServer nameServer;
-    nameServer.UnRegisterName("BluntServer", "TUPort");
-}
-
 void BluntServer::TaskMain()
 {
     ULong type = 0;
     TUMsgToken token;
     ULong n;
-    btstack_timer_source_t heartbeat;
     btstack_packet_callback_registration_t hci_event_callback_registration;
 
     fIntMessage.Init(false);
     fTimerMessage.Init(false);
-    fServerMessage.Init(false);
     fStack->hal->int_message = fIntMessage.GetMsgId();
     fStack->hal->timer_message = fTimerMessage.GetMsgId();
     hci_event_callback_registration.callback = &packet_handler;
     hci_add_event_handler(fStack, &hci_event_callback_registration);
-    btstack_run_loop_set_timer(fStack, &heartbeat, HEARTBEAT_PERIOD_MS);
-    btstack_run_loop_add_timer(fStack, &heartbeat);
-    heartbeat.process = &heartbeat_handler;
     fEnd = false;
 
     einstein_here(31, __func__, __LINE__);
@@ -208,7 +199,7 @@ void BluntServer::TaskMain()
                 HandleCommand((BluntCommand *) fMessage);
                 break;
             case M_EVENT:
-                einstein_here(31, __func__, __LINE__);
+                einstein_log(31, __func__, __LINE__, "Error: incorrect message type");
                 break;
             case M_TIMER:
                 HandleTimer();
