@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <Newton.h>
 #include "NSandDDKIncludes.h"
 #include "EventsCommands.h"
 #include "log.h"
@@ -18,15 +19,14 @@ BluntClient *BluntClient::New(RefArg blunt, TObjectId server)
 
 BluntClient::BluntClient (RefArg blunt, TObjectId server)
 {
-    einstein_here (31, __func__, __LINE__);
+    fBlunt = blunt;
+    einstein_log (31, __func__, __LINE__, "%08x %08x", blunt, (long)fBlunt);
     Init (kBluntEventId, kBluntEventClass);
-    fBlunt = new RefStruct (blunt);
     fServerPort = server;
 }
 
 BluntClient::~BluntClient ()
 {
-    delete fBlunt;
 }
 
 void BluntClient::AEHandlerProc (TUMsgToken* token, ULong* size, TAEvent* event)
@@ -133,9 +133,9 @@ void BluntClient::SendInquiryInfo (BluntInquiryResultEvent* event)
         SetFrameSlot (device, SYM (fPSRepMode), MAKEINT (event->fPSRepMode));
         SetFrameSlot (device, SYM (fPSPeriodMode), MAKEINT (event->fPSPeriodMode));
         SetFrameSlot (device, SYM (fPSMode), MAKEINT (event->fPSMode));
-        NSSendIfDefined (*fBlunt, SYM (MInquiryCallback), device);
+        NSSendIfDefined (fBlunt, SYM (MInquiryCallback), device);
     } else {
-        NSSendIfDefined (*fBlunt, SYM (MInquiryCallback), NILREF);
+        NSSendIfDefined (fBlunt, SYM (MInquiryCallback), NILREF);
     }
 }
 
@@ -148,7 +148,7 @@ void BluntClient::SendNameRequestInfo (BluntNameRequestResultEvent* event)
     WITH_LOCKED_BINARY(addr, a)
     memcpy (a, event->fBdAddr, 6);
     END_WITH_LOCKED_BINARY(addr);
-    NSSendIfDefined (*fBlunt, SYM (MNameRequestCallback), addr, MakeString ((char*) event->fName));
+    NSSendIfDefined (fBlunt, SYM (MNameRequestCallback), addr, MakeString ((char*) event->fName));
 }
 
 void BluntClient::SendLinkKeyInfo (BluntLinkKeyNotificationEvent* event)
@@ -165,7 +165,7 @@ void BluntClient::SendLinkKeyInfo (BluntLinkKeyNotificationEvent* event)
     WITH_LOCKED_BINARY(key, k)
     memcpy (k, event->fLinkKey, 16);
     END_WITH_LOCKED_BINARY(key);
-    NSSendIfDefined (*fBlunt, SYM (MLinkKeyCallback), addr, key);
+    NSSendIfDefined (fBlunt, SYM (MLinkKeyCallback), addr, key);
 }
 
 void BluntClient::SendServiceInfo (BluntServiceResultEvent* event)
@@ -185,11 +185,11 @@ void BluntClient::SendServiceInfo (BluntServiceResultEvent* event)
         SetFrameSlot (service, SYM (fService), MAKEINT (event->fServiceUUID));
         SetFrameSlot (service, SYM (fPort), MAKEINT (event->fServicePort));
     }
-    NSSendIfDefined (*fBlunt, SYM (MServicesCallback), service);
+    NSSendIfDefined (fBlunt, SYM (MServicesCallback), service);
 }
 
 void BluntClient::ResetComplete(NewtonErr result)
 {
-    einstein_here(CYAN, __func__, __LINE__);
-    NSSendIfDefined (*fBlunt, SYM (MResetCallback));
+    einstein_log(CYAN, __func__, __LINE__, "%08x", fBlunt);
+    NSSendIfDefined (fBlunt, SYM (MResetCallback));
 }

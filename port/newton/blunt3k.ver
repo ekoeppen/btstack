@@ -3,6 +3,7 @@ blunt3k_1.0 {
     MCreate;
     MStart;
     MInquiryStart;
+    MInquiryCancel;
     MStop;
 
   local:

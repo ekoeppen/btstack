@@ -61,6 +61,7 @@ public:
     void                    HandleCommand(BluntCommand* command);
 
     void                    InquiryStart(BluntInquiryCommand* command);
+    void                    InquiryCancel(BluntInquiryCancelCommand* command);
     void                    InitiatePairing(BluntInitiatePairingCommand* command);
     void                    InitiateServiceRequest(BluntServiceRequestCommand* command);
     void                    SendData(BluntDataCommand* command);

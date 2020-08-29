@@ -29,6 +29,7 @@
 
 extern "C" Ref MCreate(RefArg inRcvr)
 {
+    return NILREF;
     einstein_here(90, __func__, __LINE__);
     BluntServer *server = BluntServer::New();
     BluntClient *client = BluntClient::New(inRcvr, BluntServer::Port());
@@ -36,25 +37,52 @@ extern "C" Ref MCreate(RefArg inRcvr)
     return NILREF;
 }
 
-extern "C" Ref MStart(RefArg inRcvr)
+extern "C" Ref MStart (RefArg rcvr /*, RefArg location, RefArg driver, RefArg speed, RefArg logLevel*/)
 {
-    einstein_here(90, __func__, __LINE__);
+    einstein_log(90, __func__, __LINE__, "%08x %08x", static_cast<long>(rcvr));
+    UChar* pc;
+    ULong l;
+
+    /*
+    WITH_LOCKED_BINARY(location, p);
+    pc = (UChar *) p; l = (pc[1] << 24) + (pc[3] << 16) + (pc[5] << 8) + pc[7];
+    END_WITH_LOCKED_BINARY(location);
+    */
+
+    BluntServer *server = BluntServer::New();
+    BluntClient *client = BluntClient::New(rcvr, BluntServer::Port());
+    client->ResetComplete(noErr);
+    // server->Initialize (l, RINT (driver), RINT (speed), RINT (logLevel));
+    server->StartTask();
     TUPort serverPort(BluntServer::Port());
     BluntStartCommand cmd;
     serverPort.Send (&cmd, sizeof(cmd), (TTimeout) kNoTimeout, M_COMMAND);
-    return NILREF;
+    SetFrameSlot (rcvr, SYM (server), MAKEINT ((ULong) server));
+    SetFrameSlot (rcvr, SYM (client), MAKEINT ((ULong) client));
+    return TRUEREF;
 }
 
-extern "C" Ref MInquiryStart(RefArg inRcvr)
+extern "C" Ref MInquiryStart(RefArg rcvr, RefArg time, RefArg amount)
 {
     einstein_here(90, __func__, __LINE__);
     TUPort serverPort(BluntServer::Port());
     BluntInquiryCommand cmd;
+    cmd.fTime = RINT(time);
+    cmd.fAmount = RINT(amount);
     serverPort.Send (&cmd, sizeof(cmd), (TTimeout) kNoTimeout, M_COMMAND);
     return NILREF;
 }
 
-extern "C" Ref MStop(RefArg inRcvr)
+extern "C" Ref MInquiryCancel(RefArg rcvr)
+{
+    einstein_here(90, __func__, __LINE__);
+    TUPort serverPort(BluntServer::Port());
+    BluntInquiryCancelCommand cmd;
+    serverPort.Send (&cmd, sizeof(cmd), (TTimeout) kNoTimeout, M_COMMAND);
+    return NILREF;
+}
+
+extern "C" Ref MStop(RefArg rcvr)
 {
     einstein_here(90, __func__, __LINE__);
     TUPort serverPort(BluntServer::Port());

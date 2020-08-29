@@ -1,5 +1,6 @@
 blunt3k
 MCreate:0
 MStart:0
-MInquiryStart:0
+MInquiryStart:2
+MInquiryCancel:0
 MStop:0

@@ -58,7 +58,7 @@ static hci_transport_config_uart_t config = {
     HCI_TRANSPORT_CONFIG_UART,
     115200,
     1000000,  // main baudrate
-    1,        // flow control
+    0,        // flow control
     NULL,
 };
 
@@ -123,13 +123,14 @@ void BluntServer::HCIPacketHandler(uint8_t packet_type, uint16_t channel, uint8_
             break;
         case GAP_EVENT_INQUIRY_RESULT:
             {
+                BluntInquiryResultEvent e(noErr);
                 bd_addr_t address;
                 char buffer[3 * 6];
+                uint32_t cod = (unsigned int) gap_event_inquiry_result_get_class_of_device(packet);
                 gap_event_inquiry_result_get_bd_addr(packet, address);
                 einstein_log(33, __func__, __LINE__, "Device found: %s ",
                         bd_addr_to_str(buffer, address));
-                einstein_log(33, __func__, __LINE__, "  COD: 0x%06x",
-                        (unsigned int) gap_event_inquiry_result_get_class_of_device(packet));
+                einstein_log(33, __func__, __LINE__, "  COD: 0x%06x", cod);
                 if (gap_event_inquiry_result_get_rssi_available(packet)){
                     einstein_log(33, __func__, __LINE__, "  rssi %d dBm",
                             (int8_t) gap_event_inquiry_result_get_rssi(packet));
@@ -141,6 +142,15 @@ void BluntServer::HCIPacketHandler(uint8_t packet_type, uint16_t channel, uint8_
                     name_buffer[name_len] = 0;
                     einstein_log(33, __func__, __LINE__, "  name '%s'", name_buffer);
                 }
+                uint16_t clock_offset = gap_event_inquiry_result_get_clock_offset(packet);
+                memcpy(e.fBdAddr, address, sizeof(e.fBdAddr));
+                e.fPSRepMode = gap_event_inquiry_result_get_page_scan_repetition_mode(packet);
+                e.fClass[0] = (cod >> 16) & 0xff;
+                e.fClass[1] = (cod >> 8) & 0xff;
+                e.fClass[2] = cod & 0xff;
+                e.fClockOffset[0] = clock_offset >> 8;
+                e.fClockOffset[1] = clock_offset & 0xff;
+                fNewtPort->Send(&e, sizeof(e));
             }
             break;
         case HCI_EVENT_INQUIRY_COMPLETE:
@@ -155,9 +165,8 @@ void BluntServer::HCIPacketHandler(uint8_t packet_type, uint16_t channel, uint8_
         case BTSTACK_EVENT_STATE:
             if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING) {
                 einstein_here(31, __func__, __LINE__);
-                TUPort *newtPort = GetNewtTaskPort();
                 BluntResetCompleteEvent e(noErr);
-                newtPort->Send(&e, sizeof(e));
+                fNewtPort->Send(&e, sizeof(e));
             }
             break;
         case HCI_EVENT_COMMAND_COMPLETE:
@@ -249,10 +258,16 @@ void BluntServer::Stop()
 
 void BluntServer::InquiryStart(BluntInquiryCommand* command)
 {
-    int r;
     einstein_here(90, __func__, __LINE__);
-    // gap_start_scan(fStack);
-    gap_inquiry_start(fStack, 10);
+    gap_start_scan(fStack);
+    //gap_inquiry_start(fStack, 10);
+}
+
+void BluntServer::InquiryCancel(BluntInquiryCancelCommand* command)
+{
+    einstein_here(90, __func__, __LINE__);
+    //gap_inquiry_stop(fStack);
+    gap_stop_scan(fStack);
 }
 
 void BluntServer::InitiatePairing(BluntInitiatePairingCommand* command)

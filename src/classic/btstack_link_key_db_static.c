@@ -112,9 +112,10 @@ static void link_key_db_close(void){
 static int link_key_db_get_link_key(bd_addr_t bd_addr, link_key_t link_key, link_key_type_t * link_key_type) {
 	int i;
 	int num_entries = sizeof(link_key_db) / sizeof(link_key_entry_t);
+	char buffer[3 * 6];
 
 	for (i=0;i<num_entries;i++){
-		if (strcmp(bd_addr_to_str(bd_addr), link_key_db[i].bd_addr)) continue;
+		if (strcmp(bd_addr_to_str(buffer, bd_addr), link_key_db[i].bd_addr)) continue;
 		*link_key_type = (link_key_type_t) link_key_db[i].link_key_type;
 		sscanf_link_key(link_key_db[i].link_key, link_key);
 		return 1;

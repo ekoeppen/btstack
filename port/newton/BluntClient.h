@@ -33,6 +33,6 @@ public:
 
     void                ResetComplete(NewtonErr result);
 
-    RefStruct*          fBlunt;
+    RefStruct           fBlunt;
     TUPort              fServerPort;
 };

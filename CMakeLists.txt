@@ -46,7 +46,7 @@ target_compile_options(blunt3k PRIVATE
     -march=armv4 -mbig-endian
     $<$<COMPILE_LANGUAGE:C,CXX>:
         -O2
-        -D__arm -DhasPCMCIA -DforARM -DNO_ERRNO_H -DSTDC
+        -D__arm -DhasPCMCIA -DforARM -DNO_ERRNO_H -DSTDC -DforARM
         -fPIC -fdata-sections -ffunction-sections
         -Wno-multichar -Wno-endif-labels -Wno-builtin-declaration-mismatch -Wno-write-strings>
     $<$<COMPILE_LANGUAGE:C>: -Werror=incompatible-pointer-types>

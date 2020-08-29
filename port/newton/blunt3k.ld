@@ -1,7 +1,7 @@
 SECTIONS
 {
 /* Put sections we need to copy first to reduce total file size */
-  .text 0x10000 : { *(.text*) }
+  .text 0x00000 : { *(.text*) }
   .rodata : { *(.rodata*) }
   .data.rel.ro : { *(.data.*) }
   .plt : { *(.plt*) }

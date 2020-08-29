@@ -71,6 +71,11 @@ void BluntInquiryCommand::Process(BluntServer *server)
     server->InquiryStart(this);
 }
 
+void BluntInquiryCancelCommand::Process(BluntServer *server)
+{
+    server->InquiryCancel(this);
+}
+
 void BluntStopCommand::Process(BluntServer *server)
 {
     server->Stop();
